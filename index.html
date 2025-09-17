@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor Real de Analizador de Gases</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <div class="app-logo">
+                    <img src="src/assets/logo.svg" alt="Logo Empresa" class="company-logo">
+                </div>
+                <div class="app-title">
+                    <h1>Monitor Analizador de Gases</h1>
+                </div>
+            </div>
+            <div class="header-center">
+                <div class="status-indicator" id="statusIndicator">
+                    <div class="status-dot"></div>
+                    <span id="statusText">Desconectado</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="window-controls">
+                    <button class="window-btn minimize"><i class="fas fa-minus"></i></button>
+                    <button class="window-btn maximize"><i class="fas fa-square"></i></button>
+                    <button class="window-btn close"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            <!-- Left Sidebar -->
+            <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="app-logo">
+                  
+                    <span>Gas Analyzer</span>
+                </div>
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+                
+                <nav class="sidebar-menu">
+                    <div class="menu-section">
+                        <div class="menu-title">Principal</div>
+                        <a href="#" class="menu-item active" data-tab="realtime">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>Datos en Tiempo Real</span>
+                        </a>
+                        <a href="#" class="menu-item" data-tab="monitoring-view">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Vista de Monitoreo</span>
+                        </a>
+                        <a href="#" class="menu-item" data-tab="graphs">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Gráficos</span>
+                        </a>
+                    </div>
+                    
+                    <div class="menu-section">
+                        <div class="menu-title">Control</div>
+                        <a href="#" class="menu-item" data-tab="monitoring">
+                            <i class="fas fa-play-circle"></i>
+                            <span>Monitoreo</span>
+                        </a>
+                        <a href="#" class="menu-item" data-tab="settings">
+                            <i class="fas fa-cog"></i>
+                            <span>Configuración</span>
+                        </a>
+                    </div>
+                    
+                    <div class="menu-section">
+                        <div class="menu-title">Datos</div>
+                        <a href="#" class="menu-item" data-tab="history">
+                            <i class="fas fa-history"></i>
+                            <span>Historial</span>
+                        </a>
+                        <a href="#" class="menu-item" data-tab="export">
+                            <i class="fas fa-download"></i>
+                            <span>Exportar</span>
+                        </a>
+                    </div>
+                    
+                    <div class="menu-section">
+                        <div class="menu-title">Sistema</div>
+                        <a href="#" class="menu-item" data-tab="about">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Acerca de</span>
+                        </a>
+                    </div>
+                </nav>
+                
+                <div class="sidebar-footer">
+                    <div class="connection-status">
+                        <div class="status-indicator" id="sidebarStatusIndicator">
+                            <div class="status-dot"></div>
+                            <span id="sidebarStatusText">Desconectado</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="main-content">
+                <div class="data-panel">
+                    <!-- Content will be loaded dynamically -->
+
+                    <!-- Tab Content -->
+                    <div class="tab-content">
+                        <div class="tab-pane active" id="realtime-tab">
+                            <div class="panel-header">
+                                <i class="fas fa-chart-bar"></i>
+                                <h2>Datos del Analizador en Tiempo Real</h2>
+                            </div>
+                            
+                            <!-- Control de Monitoreo -->
+                            <div class="monitoring-controls-main">
+                                <div class="control-section-main">
+                                    <h3>Control de Monitoreo</h3>
+                                    <div class="button-group-main">
+                                        <button id="startBtn" class="btn btn-success" disabled>
+                                            <i class="fas fa-play"></i>
+                                            Iniciar Monitoreo
+                                        </button>
+                                        <button id="stopBtn" class="btn btn-warning" disabled>
+                                            <i class="fas fa-stop"></i>
+                                            Detener Monitoreo
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                        <div class="control-section-main">
+                                            <h3>Gases a Monitorear</h3>
+                                            <div class="gas-selection-main">
+                                                <div class="gas-option">
+                                                    <label class="checkbox-label">
+                                                        <input type="checkbox" id="monitorO2Main" class="gas-checkbox" checked>
+                                                        <span class="checkmark"></span>
+                                                        <i class="fas fa-wind gas-icon o2-icon"></i>
+                                                        O₂ - Oxígeno (%Vol)
+                                                    </label>
+                                                </div>
+                                                <div class="gas-option">
+                                                    <label class="checkbox-label">
+                                                        <input type="checkbox" id="monitorCOMain" class="gas-checkbox" checked>
+                                                        <span class="checkmark"></span>
+                                                        <i class="fas fa-smog gas-icon co-icon"></i>
+                                                        CO - Monóxido de Carbono (ppm)
+                                                    </label>
+                                                </div>
+                                                <div class="gas-option">
+                                                    <label class="checkbox-label">
+                                                        <input type="checkbox" id="monitorCH4Main" class="gas-checkbox" checked>
+                                                        <span class="checkmark"></span>
+                                                        <i class="fas fa-fire gas-icon ch4-icon"></i>
+                                                        CH₄ - Metano (ppm)
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        
+                            </div>
+                            
+                            <!-- Gas Cards -->
+                            <div class="gas-cards">
+                                <div class="gas-card oxygen">
+                                    <div class="gas-header">
+                                        <h3>O2 Oxígeno</h3>
+                                        <span class="unit">%Vol</span>
+                                    </div>
+                                    <div class="gas-value" id="o2Value">--</div>
+                                    <div class="gas-status">
+                                        <i class="fas fa-clock"></i>
+                                        <span>Esperando...</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="gas-card carbon-monoxide">
+                                    <div class="gas-header">
+                                        <h3>CO Monóxido de Carbono</h3>
+                                        <span class="unit">ppm</span>
+                                    </div>
+                                    <div class="gas-value" id="coValue">--</div>
+                                    <div class="gas-status">
+                                        <i class="fas fa-clock"></i>
+                                        <span>Esperando...</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="gas-card methane">
+                                    <div class="gas-header">
+                                        <h3>CH4 Metano</h3>
+                                        <span class="unit">ppm</span>
+                                    </div>
+                                    <div class="gas-value" id="ch4Value">--</div>
+                                    <div class="gas-status">
+                                        <i class="fas fa-clock"></i>
+                                        <span>Esperando...</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Status Information -->
+                            <div class="status-info">
+                                <div class="status-row">
+                                    <div class="status-item">
+                                        <span class="status-label">Estado Actual:</span>
+                                        <span id="calibrationStatus" class="status-value">Normal</span>
+                                    </div>
+                                    <div class="status-item">
+                                        <span class="status-label">Último Evento:</span>
+                                        <span id="lastEvent" class="status-value">-</span>
+                                    </div>
+                                </div>
+                                <div class="status-row">
+                                    <div class="status-item">
+                                        <span class="status-label">Última Lectura:</span>
+                                        <span id="lastReadingValue" class="status-value">-:-:-</span>
+                                    </div>
+                                    <div class="status-item">
+                                        <span class="status-label">Datos:</span>
+                                        <span id="dataCount" class="status-value">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                                <div class="tab-pane" id="graphs-tab">
+                                    <div class="panel-header">
+                                        <i class="fas fa-chart-line"></i>
+                                        <h2>Gráficos de Tendencias</h2>
+                                    </div>
+                                    
+                                    <div class="charts-container">
+                                        <div class="chart-section">
+                                            <div class="chart-header">
+                                                <h3>O₂ - Oxígeno</h3>
+                                                <span class="unit">%Vol</span>
+                                            </div>
+                                            <div class="chart-wrapper">
+                                                <canvas id="o2Chart"></canvas>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="chart-section">
+                                            <div class="chart-header">
+                                                <h3>CO - Monóxido de Carbono</h3>
+                                                <span class="unit">ppm</span>
+                                            </div>
+                                            <div class="chart-wrapper">
+                                                <canvas id="coChart"></canvas>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="chart-section">
+                                            <div class="chart-header">
+                                                <h3>CH₄ - Metano</h3>
+                                                <span class="unit">ppm</span>
+                                            </div>
+                                            <div class="chart-wrapper">
+                                                <canvas id="ch4Chart"></canvas>
+                                            </div>
+                                        </div>
+                                        
+                                    </div>
+                                </div>
+                                
+                                <!-- Monitoring View Tab -->
+                                <div class="tab-pane" id="monitoring-view-tab">
+                                    <div class="monitoring-view-header">
+                                        <div class="monitoring-status">
+                                            <div class="status-indicator-large">
+                                                <div class="status-dot-large" id="monitoringStatusDot"></div>
+                                                <span id="monitoringStatusText">Monitoreo Activo</span>
+                                            </div>
+                                            <div class="monitoring-controls-top">
+                                                <button id="stopMonitoringBtn" class="btn btn-danger btn-large">
+                                                    <i class="fas fa-stop"></i>
+                                                    Detener Monitoreo
+                                                </button>
+                                                <button id="exitMonitoringBtn" class="btn btn-secondary btn-large">
+                                                    <i class="fas fa-arrow-left"></i>
+                                                    Salir de Vista
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="monitoring-info">
+                                            <div class="info-item">
+                                                <span class="info-label">Tiempo de Monitoreo:</span>
+                                                <span id="monitoringTime" class="info-value">00:00:00</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <span class="info-label">Datos Leídos:</span>
+                                                <span id="monitoringDataCount" class="info-value">0</span>
+                                            </div>
+                                            <div class="info-item">
+                                                <span class="info-label">Última Lectura:</span>
+                                                <span id="monitoringLastReading" class="info-value">-:-:-</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Calibration Controls for Monitoring View -->
+                                    <div class="monitoring-calibration">
+                                        <h3>Control de Calibración</h3>
+                                        <div class="calibration-buttons-monitoring">
+                                            <button id="zeroBtnMonitoring" class="btn btn-calibration zero">
+                                                <i class="fas fa-circle"></i>
+                                                ZERO
+                                            </button>
+                                            <button id="spanBtnMonitoring" class="btn btn-calibration span">
+                                                <i class="fas fa-adjust"></i>
+                                                SPAN
+                                            </button>
+                                            <button id="startGasBtnMonitoring" class="btn btn-calibration start-gas">
+                                                <i class="fas fa-play-circle"></i>
+                                                INICIO GAS PATRÓN
+                                            </button>
+                                            <button id="endInjectionBtnMonitoring" class="btn btn-calibration end-injection">
+                                                <i class="fas fa-stop-circle"></i>
+                                                FIN INYECCIÓN GAS
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="monitoring-content">
+                                        <!-- Gas Cards for Monitoring View -->
+                                        <div class="monitoring-gas-cards" id="monitoringGasCards">
+                                            <!-- Gas cards will be dynamically populated here -->
+                                        </div>
+
+                                        <!-- Real-time Charts for Monitoring -->
+                                        <div class="monitoring-charts">
+                                            <div class="monitoring-chart-container" id="monitoringChartContainer">
+                                                <!-- Charts will be dynamically created here -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Monitoring Tab -->
+                                <div class="tab-pane" id="monitoring-tab">
+                                    <div class="panel-header">
+                                        <i class="fas fa-cog"></i>
+                                        <h2>Configuración del Sistema</h2>
+                                    </div>
+                                    
+                                    <div class="monitoring-controls">
+                                        <div class="control-section">
+                                            <h3>Configuración de Conexión</h3>
+                                            <div class="form-group">
+                                                <label for="portInput">Puerto:</label>
+                                                <input type="text" id="portInput" class="form-control" value="COM9" placeholder="COM9" disabled>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="slaveIdInput">Slave ID:</label>
+                                                <input type="text" id="slaveIdInput" class="form-control" value="1" placeholder="1" disabled>
+                                            </div>
+                                            <button id="connectBtn" class="btn btn-primary" disabled>
+                                                <i class="fas fa-link"></i>
+                                                Conectado
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="control-section">
+                                            <h3>Configuración de Lectura</h3>
+                                            <div class="form-group">
+                                                <label for="intervalInput">Intervalo (seg):</label>
+                                                <input type="number" id="intervalInput" class="form-control" value="2.0" step="0.1" min="0.5" max="60">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="control-section">
+                                            <h3>Información del Sistema</h3>
+                                            <div class="process-info">
+                                                <div class="info-item">
+                                                    <span class="info-label">Archivo Excel:</span>
+                                                    <span id="excelFileStatus" class="info-value">Cargando...</span>
+                                                </div>
+                                                <div class="info-item">
+                                                    <span class="info-label">Estado de Conexión:</span>
+                                                    <span id="connectionStatusInfo" class="info-value">Desconectado</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Settings Tab -->
+                                <div class="tab-pane" id="settings-tab">
+                                    <div class="panel-header">
+                                        <i class="fas fa-cog"></i>
+                                        <h2>Configuración del Sistema</h2>
+                                    </div>
+                                    
+                                    <div class="settings-content">
+                                        <div class="settings-section">
+                                            <h3>Configuración de Puerto</h3>
+                                            <div class="form-group">
+                                                <label for="settingsPort">Puerto COM:</label>
+                                                <select id="settingsPort" class="form-control">
+                                                    <option value="COM9" selected>COM9</option>
+                                                    <option value="COM1">COM1</option>
+                                                    <option value="COM2">COM2</option>
+                                                    <option value="COM3">COM3</option>
+                                                    <option value="COM4">COM4</option>
+                                                </select>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="settingsSlaveId">Slave ID:</label>
+                                                <input type="number" id="settingsSlaveId" class="form-control" value="1" min="1" max="247">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="settings-section">
+                                            <h3>Configuración de Lectura</h3>
+                                            <div class="form-group">
+                                                <label for="settingsInterval">Intervalo de lectura (segundos):</label>
+                                                <input type="number" id="settingsInterval" class="form-control" value="2.0" step="0.1" min="0.5" max="60">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="settingsMaxPoints">Puntos máximos en gráficos:</label>
+                                                <input type="number" id="settingsMaxPoints" class="form-control" value="50" min="10" max="200">
+                                            </div>
+                                        </div>
+                                        
+                                        
+                                        <div class="settings-section">
+                                            <h3>Configuración de Archivo Excel</h3>
+                                            <div class="form-group">
+                                                <label for="settingsExcelPath">Ruta del archivo Excel:</label>
+                                                <div class="path-container">
+                                                    <input type="text" id="settingsExcelPath" class="form-control" readonly>
+                                                    <button id="settingsSelectPathBtn" class="btn btn-secondary">
+                                                        <i class="fas fa-folder-open"></i>
+                                                        Seleccionar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="settingsFileName">Nombre del archivo Excel:</label>
+                                                <input type="text" id="settingsFileName" class="form-control" value="lecturas_ch4_co_o2.xlsx">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="settings-actions">
+                                            <button class="btn btn-primary" id="saveSettings">
+                                                <i class="fas fa-save"></i>
+                                                Guardar Configuración
+                                            </button>
+                                            <button class="btn btn-secondary" id="resetSettings">
+                                                <i class="fas fa-undo"></i>
+                                                Restaurar Valores
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- History Tab -->
+                                <div class="tab-pane" id="history-tab">
+                                    <div class="panel-header">
+                                        <i class="fas fa-history"></i>
+                                        <h2>Historial de Lecturas</h2>
+                                    </div>
+                                    
+                                    <div class="history-content">
+                                        <div class="history-controls">
+                                            <div class="form-group">
+                                                <label for="historyDateFrom">Desde:</label>
+                                                <input type="datetime-local" id="historyDateFrom" class="form-control">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="historyDateTo">Hasta:</label>
+                                                <input type="datetime-local" id="historyDateTo" class="form-control">
+                                            </div>
+                                            <button class="btn btn-primary" id="loadHistory">
+                                                <i class="fas fa-search"></i>
+                                                Buscar
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="history-table">
+                                            <table id="historyTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Fecha</th>
+                                                        <th>Hora</th>
+                                                        <th>O₂ (%Vol)</th>
+                                                        <th>CO (ppm)</th>
+                                                        <th>CH₄ (ppm)</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr>
+                                                        <td colspan="5" class="no-data">No hay datos disponibles</td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Export Tab -->
+                                <div class="tab-pane" id="export-tab">
+                                    <div class="panel-header">
+                                        <i class="fas fa-download"></i>
+                                        <h2>Exportar Datos</h2>
+                                    </div>
+                                    
+                                    <div class="export-content">
+                                        <div class="export-section">
+                                            <h3>Exportar a Excel</h3>
+                                            <p>Exporta todos los datos del analizador a un archivo Excel.</p>
+                                            <button class="btn btn-success" id="exportExcel">
+                                                <i class="fas fa-file-excel"></i>
+                                                Exportar Excel
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="export-section">
+                                            <h3>Exportar a CSV</h3>
+                                            <p>Exporta los datos en formato CSV para análisis en otras aplicaciones.</p>
+                                            <button class="btn btn-info" id="exportCSV">
+                                                <i class="fas fa-file-csv"></i>
+                                                Exportar CSV
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="export-section">
+                                            <h3>Exportar Gráficos</h3>
+                                            <p>Guarda los gráficos como imágenes PNG.</p>
+                                            <button class="btn btn-warning" id="exportCharts">
+                                                <i class="fas fa-image"></i>
+                                                Exportar Gráficos
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- About Tab -->
+                                <div class="tab-pane" id="about-tab">
+                                    <div class="panel-header">
+                                        <i class="fas fa-info-circle"></i>
+                                        <h2>Acerca de la Aplicación</h2>
+                                    </div>
+                                    
+                                    <div class="about-content">
+                                        <div class="about-section">
+                                            <h3>Monitor Real de Analizador de Gases</h3>
+                                            <p>Versión 1.0.0</p>
+                                            <p>Aplicación desarrollada para monitoreo en tiempo real de analizadores de gases mediante comunicación Modbus RTU.</p>
+                                        </div>
+                                        
+                                        <div class="about-section">
+                                            <h3>Características</h3>
+                                            <ul>
+                                                <li>Comunicación Modbus RTU</li>
+                                                <li>Lectura de O₂, CO y CH₄</li>
+                                                <li>Gráficos en tiempo real</li>
+                                                <li>Exportación a Excel</li>
+                                                <li>Interfaz industrial moderna</li>
+                                            </ul>
+                                        </div>
+                                        
+                                        <div class="about-section">
+                                            <h3>Desarrollado por</h3>
+                                            <p>Ecoingen</p>
+                                            <p>Septiembre 2025</p>
+                                        </div>
+                                    </div>
+                                </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Procesando...</p>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast" id="toast">
+        <div class="toast-content">
+            <i class="toast-icon"></i>
+            <span class="toast-message"></span>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
