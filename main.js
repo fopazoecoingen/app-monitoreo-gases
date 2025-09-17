@@ -28,6 +28,13 @@ let port = null;
 let isReading = false;
 let currentEventType = 'Normal';
 
+// Configuración de gases seleccionados
+let selectedGases = {
+    o2: true,
+    co: true,
+    ch4: true
+};
+
 // Función para calcular CRC16 Modbus
 function calculateCRC16(data) {
     let crc = 0xFFFF;

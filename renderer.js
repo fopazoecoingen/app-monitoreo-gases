@@ -10,10 +10,10 @@ const statusText = document.getElementById('statusText');
 const loadingOverlay = document.getElementById('loadingOverlay');
 const toast = document.getElementById('toast');
 
-// Gas value elements
-const o2Value = document.getElementById('o2Value');
-const coValue = document.getElementById('coValue');
-const ch4Value = document.getElementById('ch4Value');
+// Gas value elements (only for monitoring view now)
+// const o2Value = document.getElementById('o2Value'); // Removed from main view
+// const coValue = document.getElementById('coValue'); // Removed from main view  
+// const ch4Value = document.getElementById('ch4Value'); // Removed from main view
 const lastReadingValue = document.getElementById('lastReadingValue');
 const dataCount = document.getElementById('dataCount');
 
@@ -65,8 +65,9 @@ if (!connectionStatusInfo) {
 // Tab elements
 const menuItems = document.querySelectorAll('.menu-item');
 const tabPanes = document.querySelectorAll('.tab-pane');
-const sidebarToggle = document.getElementById('sidebarToggle');
 const sidebar = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
+const sidebarToggleBtn = document.getElementById('sidebarToggleBtn');
 
 // State
 let isConnected = false;
@@ -113,6 +114,8 @@ async function initializeApp() {
     
     // Cargar configuración de gases
     await loadGasConfiguration();
+    
+    // Sidebar is now fixed, no initialization needed
     
     // Auto-conectar al iniciar la aplicación
     try {
@@ -171,13 +174,19 @@ function setupEventListeners() {
     if (endInjectionBtnMonitoring) endInjectionBtnMonitoring.addEventListener('click', () => markCalibrationEvent('FIN_INYECCION_GAS'));
     
     // Sidebar toggle
-    sidebarToggle.addEventListener('click', toggleSidebar);
+    sidebarToggleBtn.addEventListener('click', toggleSidebar);
+    
+    // Close sidebar when clicking overlay
+    sidebarOverlay.addEventListener('click', closeSidebar);
     
     // Menu navigation
     menuItems.forEach(item => {
         item.addEventListener('click', (e) => {
             e.preventDefault();
             switchTab(item.dataset.tab);
+            
+            // Close sidebar after selecting a menu item
+            closeSidebar();
         });
     });
     
@@ -303,9 +312,9 @@ function updateStatus(status) {
 }
 
 function updateGasValues(data) {
-    if (data.o2 !== undefined) o2Value.textContent = data.o2.toFixed(3);
-    if (data.co !== undefined) coValue.textContent = data.co.toFixed(3);
-    if (data.ch4 !== undefined) ch4Value.textContent = data.ch4.toFixed(3);
+    // Gas values are now only updated in monitoring view
+    // Main view no longer displays gas values
+    console.log('Gas values updated:', data);
     
     // Actualizar gráficos
     updateCharts(data);
@@ -461,13 +470,18 @@ function switchTab(tabName) {
 }
 
 function toggleSidebar() {
-    sidebar.classList.toggle('collapsed');
+    sidebar.classList.toggle('show');
+    sidebarOverlay.classList.toggle('show');
+}
+
+function closeSidebar() {
+    sidebar.classList.remove('show');
+    sidebarOverlay.classList.remove('show');
 }
 
 function clearGasValues() {
-    o2Value.textContent = '--';
-    coValue.textContent = '--';
-    ch4Value.textContent = '--';
+    // Gas values are now only in monitoring view
+    // Main view no longer displays gas values
     lastReadingValue.textContent = '-:-:-';
     dataCount.textContent = '0';
 }
@@ -709,7 +723,7 @@ async function loadGasConfiguration() {
         if (monitorCH4MainCheckbox) monitorCH4MainCheckbox.checked = gasConfig.ch4;
         
         // Actualizar la interfaz para mostrar/ocultar gases
-        updateGasCardsVisibility(gasConfig);
+        // Gas cards visibility is now handled in monitoring view only
     } catch (error) {
         console.error('Error al cargar configuración de gases:', error);
         showToast('error', 'Error al cargar configuración de gases');
@@ -728,7 +742,7 @@ async function saveSettings() {
         
         if (result.success) {
             showToast('success', 'Configuración guardada exitosamente');
-            updateGasCardsVisibility(gasConfig);
+            // Gas cards visibility is now handled in monitoring view only
         } else {
             showToast('error', result.error || 'Error al guardar configuración');
         }
@@ -757,7 +771,7 @@ async function handleGasSelectionChange() {
         const result = await window.electronAPI.updateSelectedGases(gasConfig);
         
         if (result.success) {
-            updateGasCardsVisibility(gasConfig);
+            // Gas cards visibility is now handled in monitoring view only
             showToast('success', 'Configuración de gases actualizada');
         } else {
             showToast('error', result.error || 'Error al actualizar configuración');
@@ -768,15 +782,7 @@ async function handleGasSelectionChange() {
     }
 }
 
-function updateGasCardsVisibility(gasConfig) {
-    const o2Card = document.querySelector('.gas-card.oxygen');
-    const coCard = document.querySelector('.gas-card.carbon-monoxide');
-    const ch4Card = document.querySelector('.gas-card.methane');
-    
-    if (o2Card) o2Card.style.display = gasConfig.o2 ? 'block' : 'none';
-    if (coCard) coCard.style.display = gasConfig.co ? 'block' : 'none';
-    if (ch4Card) ch4Card.style.display = gasConfig.ch4 ? 'block' : 'none';
-}
+// updateGasCardsVisibility function removed - gas cards are now only in monitoring view
 
 // Monitoring View Functions
 async function switchToMonitoringView() {

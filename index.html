@@ -14,6 +14,9 @@
         <!-- Header -->
         <header class="header">
             <div class="header-left">
+                <button class="sidebar-toggle-btn" id="sidebarToggleBtn">
+                    <i class="fas fa-bars"></i>
+                </button>
                 <div class="app-logo">
                     <img src="src/assets/logo.svg" alt="Logo Empresa" class="company-logo">
                 </div>
@@ -38,16 +41,15 @@
 
         <!-- Main Layout -->
         <div class="main-layout">
-            <!-- Left Sidebar -->
+            <!-- Sidebar Overlay -->
+            <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+            <!-- Sidebar -->
             <aside class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="app-logo">
-                  
                     <span>Gas Analyzer</span>
                 </div>
-                <button class="sidebar-toggle" id="sidebarToggle">
-                    <i class="fas fa-bars"></i>
-                </button>
             </div>
                 
                 <nav class="sidebar-menu">
@@ -128,88 +130,48 @@
                                 <div class="control-section-main">
                                     <h3>Control de Monitoreo</h3>
                                     <div class="button-group-main">
-                                        <button id="startBtn" class="btn btn-success" disabled>
+                                        <button id="startBtn" class="btn btn-success btn-large" disabled>
                                             <i class="fas fa-play"></i>
                                             Iniciar Monitoreo
                                         </button>
-                                        <button id="stopBtn" class="btn btn-warning" disabled>
+                                        <button id="stopBtn" class="btn btn-warning btn-large" disabled>
                                             <i class="fas fa-stop"></i>
                                             Detener Monitoreo
                                         </button>
                                     </div>
                                 </div>
                                 
-                                        <div class="control-section-main">
-                                            <h3>Gases a Monitorear</h3>
-                                            <div class="gas-selection-main">
-                                                <div class="gas-option">
-                                                    <label class="checkbox-label">
-                                                        <input type="checkbox" id="monitorO2Main" class="gas-checkbox" checked>
-                                                        <span class="checkmark"></span>
-                                                        <i class="fas fa-wind gas-icon o2-icon"></i>
-                                                        O₂ - Oxígeno (%Vol)
-                                                    </label>
-                                                </div>
-                                                <div class="gas-option">
-                                                    <label class="checkbox-label">
-                                                        <input type="checkbox" id="monitorCOMain" class="gas-checkbox" checked>
-                                                        <span class="checkmark"></span>
-                                                        <i class="fas fa-smog gas-icon co-icon"></i>
-                                                        CO - Monóxido de Carbono (ppm)
-                                                    </label>
-                                                </div>
-                                                <div class="gas-option">
-                                                    <label class="checkbox-label">
-                                                        <input type="checkbox" id="monitorCH4Main" class="gas-checkbox" checked>
-                                                        <span class="checkmark"></span>
-                                                        <i class="fas fa-fire gas-icon ch4-icon"></i>
-                                                        CH₄ - Metano (ppm)
-                                                    </label>
-                                                </div>
-                                            </div>
+                                <div class="control-section-main">
+                                    <h3>Gases a Monitorear</h3>
+                                    <div class="gas-selection-main">
+                                        <div class="gas-option">
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" id="monitorO2Main" class="gas-checkbox" checked>
+                                                <span class="checkmark"></span>
+                                                <i class="fas fa-wind gas-icon o2-icon"></i>
+                                                O₂ - Oxígeno (%Vol)
+                                            </label>
                                         </div>
-                                        
-                                        
+                                        <div class="gas-option">
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" id="monitorCOMain" class="gas-checkbox" checked>
+                                                <span class="checkmark"></span>
+                                                <i class="fas fa-smog gas-icon co-icon"></i>
+                                                CO - Monóxido de Carbono (ppm)
+                                            </label>
+                                        </div>
+                                        <div class="gas-option">
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" id="monitorCH4Main" class="gas-checkbox" checked>
+                                                <span class="checkmark"></span>
+                                                <i class="fas fa-fire gas-icon ch4-icon"></i>
+                                                CH₄ - Metano (ppm)
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             
-                            <!-- Gas Cards -->
-                            <div class="gas-cards">
-                                <div class="gas-card oxygen">
-                                    <div class="gas-header">
-                                        <h3>O2 Oxígeno</h3>
-                                        <span class="unit">%Vol</span>
-                                    </div>
-                                    <div class="gas-value" id="o2Value">--</div>
-                                    <div class="gas-status">
-                                        <i class="fas fa-clock"></i>
-                                        <span>Esperando...</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="gas-card carbon-monoxide">
-                                    <div class="gas-header">
-                                        <h3>CO Monóxido de Carbono</h3>
-                                        <span class="unit">ppm</span>
-                                    </div>
-                                    <div class="gas-value" id="coValue">--</div>
-                                    <div class="gas-status">
-                                        <i class="fas fa-clock"></i>
-                                        <span>Esperando...</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="gas-card methane">
-                                    <div class="gas-header">
-                                        <h3>CH4 Metano</h3>
-                                        <span class="unit">ppm</span>
-                                    </div>
-                                    <div class="gas-value" id="ch4Value">--</div>
-                                    <div class="gas-status">
-                                        <i class="fas fa-clock"></i>
-                                        <span>Esperando...</span>
-                                    </div>
-                                </div>
-                            </div>
                             
                             <!-- Status Information -->
                             <div class="status-info">
@@ -315,21 +277,21 @@
                                     <div class="monitoring-calibration">
                                         <h3>Control de Calibración</h3>
                                         <div class="calibration-buttons-monitoring">
-                                            <button id="zeroBtnMonitoring" class="btn btn-calibration zero">
+                                            <button id="zeroBtnMonitoring" class="btn btn-calibration zero" title="Calibración Zero">
                                                 <i class="fas fa-circle"></i>
                                                 ZERO
                                             </button>
-                                            <button id="spanBtnMonitoring" class="btn btn-calibration span">
+                                            <button id="spanBtnMonitoring" class="btn btn-calibration span" title="Calibración Span">
                                                 <i class="fas fa-adjust"></i>
                                                 SPAN
                                             </button>
-                                            <button id="startGasBtnMonitoring" class="btn btn-calibration start-gas">
+                                            <button id="startGasBtnMonitoring" class="btn btn-calibration start-gas" title="Inicio Gas Patrón">
                                                 <i class="fas fa-play-circle"></i>
-                                                INICIO GAS PATRÓN
+                                                INICIO
                                             </button>
-                                            <button id="endInjectionBtnMonitoring" class="btn btn-calibration end-injection">
+                                            <button id="endInjectionBtnMonitoring" class="btn btn-calibration end-injection" title="Fin Inyección Gas">
                                                 <i class="fas fa-stop-circle"></i>
-                                                FIN INYECCIÓN GAS
+                                                FIN
                                             </button>
                                         </div>
                                     </div>
