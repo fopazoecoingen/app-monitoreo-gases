@@ -1,0 +1,41 @@
+/* Font Awesome Icons - Simple Implementation */
+.fas {
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  font-style: normal;
+  font-variant: normal;
+  text-rendering: auto;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Essential Icons - Using Unicode Characters */
+.fa-bars:before { content: "\2630"; }
+.fa-play:before { content: "\25B6"; }
+.fa-stop:before { content: "\25FC"; }
+.fa-save:before { content: "\1F4BE"; }
+.fa-folder-open:before { content: "\1F4C2"; }
+.fa-cog:before { content: "\2699"; }
+.fa-chart-line:before { content: "\1F4C8"; }
+.fa-eye:before { content: "\1F441"; }
+.fa-eye-slash:before { content: "\1F441"; }
+.fa-times:before { content: "\2716"; }
+.fa-check:before { content: "\2713"; }
+.fa-exclamation-triangle:before { content: "\26A0"; }
+.fa-info-circle:before { content: "\2139"; }
+.fa-arrow-left:before { content: "\2190"; }
+.fa-arrow-right:before { content: "\2192"; }
+.fa-arrow-up:before { content: "\2191"; }
+.fa-arrow-down:before { content: "\2193"; }
+.fa-circle:before { content: "\25CF"; }
+.fa-square:before { content: "\25A0"; }
+.fa-clock:before { content: "\1F550"; }
+.fa-database:before { content: "\1F5F9"; }
+.fa-flask:before { content: "\2697"; }
+.fa-wind:before { content: "\1F4A8"; }
+.fa-fire:before { content: "\1F525"; }
+.fa-leaf:before { content: "\1F343"; }
+
+/* Fallback for eye-slash */
+.fa-eye-slash:before { content: "\1F441"; opacity: 0.5; }
