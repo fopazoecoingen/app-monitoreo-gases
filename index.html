@@ -91,14 +91,6 @@
                             <i class="fas fa-database"></i>
                             <span>Gestión de Mediciones</span>
                         </a>
-                        <a href="#" class="menu-item" data-tab="history">
-                            <i class="fas fa-history"></i>
-                            <span>Historial</span>
-                        </a>
-                        <a href="#" class="menu-item" data-tab="export">
-                            <i class="fas fa-download"></i>
-                            <span>Exportar</span>
-                        </a>
                     </div>
                     
                     <div class="menu-section">
@@ -510,17 +502,15 @@
                                                                 <input type="checkbox" id="selectAllMediciones">
                                                             </th>
                                                             <th>ID</th>
-                                                            <th>Fecha</th>
-                                                            <th>Hora</th>
-                                                            <th>Evento</th>
-                                                            <th>Observaciones</th>
-                                                            <th>Gases</th>
+                                                            <th>Inicio</th>
+                                                            <th>Fin</th>
+                                                            <th>Lecturas</th>
                                                             <th>Acciones</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody id="medicionesTableBody">
                                                         <tr>
-                                                            <td colspan="8" class="no-data">No hay mediciones disponibles</td>
+                                                            <td colspan="6" class="no-data">No hay mediciones disponibles</td>
                                                         </tr>
                                                     </tbody>
                                                 </table>
@@ -608,86 +598,7 @@
                                     </div>
                                 </div>
 
-                                <!-- History Tab -->
-                                <div class="tab-pane" id="history-tab">
-                                    <div class="panel-header">
-                                        <i class="fas fa-history"></i>
-                                        <h2>Historial de Lecturas</h2>
-                                    </div>
-                                    
-                                    <div class="history-content">
-                                        <div class="history-controls">
-                                            <div class="form-group">
-                                                <label for="historyDateFrom">Desde:</label>
-                                                <input type="datetime-local" id="historyDateFrom" class="form-control">
-                                            </div>
-                                            <div class="form-group">
-                                                <label for="historyDateTo">Hasta:</label>
-                                                <input type="datetime-local" id="historyDateTo" class="form-control">
-                                            </div>
-                                            <button class="btn btn-primary" id="loadHistory">
-                                                <i class="fas fa-search"></i>
-                                                Buscar
-                                            </button>
-                                        </div>
-                                        
-                                        <div class="history-table">
-                                            <table id="historyTable">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Fecha</th>
-                                                        <th>Hora</th>
-                                                        <th>O₂ (%Vol)</th>
-                                                        <th>CO (ppm)</th>
-                                                        <th>CH₄ (ppm)</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <tr>
-                                                        <td colspan="5" class="no-data">No hay datos disponibles</td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
                                 
-                                <!-- Export Tab -->
-                                <div class="tab-pane" id="export-tab">
-                                    <div class="panel-header">
-                                        <i class="fas fa-download"></i>
-                                        <h2>Exportar Datos</h2>
-                                    </div>
-                                    
-                                    <div class="export-content">
-                                        <div class="export-section">
-                                            <h3>Exportar a Excel</h3>
-                                            <p>Exporta todos los datos del analizador a un archivo Excel.</p>
-                                            <button class="btn btn-success" id="exportExcel">
-                                                <i class="fas fa-file-excel"></i>
-                                                Exportar Excel
-                                            </button>
-                                        </div>
-                                        
-                                        <div class="export-section">
-                                            <h3>Exportar a CSV</h3>
-                                            <p>Exporta los datos en formato CSV para análisis en otras aplicaciones.</p>
-                                            <button class="btn btn-info" id="exportCSV">
-                                                <i class="fas fa-file-csv"></i>
-                                                Exportar CSV
-                                            </button>
-                                        </div>
-                                        
-                                        <div class="export-section">
-                                            <h3>Exportar Gráficos</h3>
-                                            <p>Guarda los gráficos como imágenes PNG.</p>
-                                            <button class="btn btn-warning" id="exportCharts">
-                                                <i class="fas fa-image"></i>
-                                                Exportar Gráficos
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
                                 
                                 <!-- About Tab -->
                                 <div class="tab-pane" id="about-tab">

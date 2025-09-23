@@ -184,11 +184,11 @@ class MedicionesManager {
 
         console.log('📊 Renderizando', this.mediciones.length, 'mediciones');
 
-        if (this.mediciones.length === 0) {
-            console.log('📭 No hay mediciones, mostrando mensaje vacío');
-            tbody.innerHTML = '<tr><td colspan="8" class="no-data">No hay mediciones disponibles</td></tr>';
-            return;
-        }
+            if (this.mediciones.length === 0) {
+                console.log('📭 No hay mediciones, mostrando mensaje vacío');
+                tbody.innerHTML = '<tr><td colspan="6" class="no-data">No hay mediciones disponibles</td></tr>';
+                return;
+            }
 
         const startIndex = (this.currentPage - 1) * this.itemsPerPage;
         const endIndex = startIndex + this.itemsPerPage;
@@ -203,6 +203,12 @@ class MedicionesManager {
                 gasBadges.push(`<span class="gas-badge total">Lecturas: ${medicion.total_lecturas}</span>`);
             }
 
+            // Formatear fechas de inicio y fin
+            const inicioFormateado = medicion.tiempo_inicio ? 
+                this.formatDateTime(medicion.tiempo_inicio) : 'No iniciado';
+            const finFormateado = medicion.tiempo_fin ? 
+                this.formatDateTime(medicion.tiempo_fin) : 'En progreso';
+
             return `
                 <tr class="${this.selectedMediciones.has(medicion.medicion_id) ? 'selected' : ''}">
                     <td>
@@ -212,32 +218,16 @@ class MedicionesManager {
                                ${this.selectedMediciones.has(medicion.medicion_id) ? 'checked' : ''}>
                     </td>
                     <td>${medicion.medicion_id}</td>
-                    <td>${medicion.fecha}</td>
-                    <td>${medicion.hora}</td>
+                    <td title="Inicio: ${medicion.tiempo_inicio || 'No disponible'}">${inicioFormateado}</td>
+                    <td title="Fin: ${medicion.tiempo_fin || 'No disponible'}">${finFormateado}</td>
                     <td>
-                        <span class="event-badge ${this.getEventClass(medicion.evento)}">
-                            ${medicion.evento}
-                        </span>
-                    </td>
-                    <td title="${medicion.observaciones || ''}">
-                        ${medicion.observaciones ? 
-                            (medicion.observaciones.length > 30 ? 
-                                medicion.observaciones.substring(0, 30) + '...' : 
-                                medicion.observaciones
-                            ) : '-'}
-                    </td>
-                    <td>
-                        <div class="gas-badges">
-                            ${gasBadges.length > 0 ? gasBadges.join(' ') : '<span class="no-gases">Sin lecturas</span>'}
-                        </div>
-                        ${medicion.tiempo_inicio ? `<div class="time-info">Inicio: ${medicion.tiempo_inicio}</div>` : ''}
-                        ${medicion.tiempo_fin ? `<div class="time-info">Fin: ${medicion.tiempo_fin}</div>` : ''}
+                        <span class="gas-badge total">${medicion.total_lecturas || 0}</span>
                     </td>
                     <td>
                         <div class="action-buttons">
                             <button class="action-btn view" 
                                     onclick="medicionesManager.viewMedicionDetail(${medicion.medicion_id})"
-                                    title="Ver detalle">
+                                    title="Ver detalle (incluye observaciones)">
                                 <i class="fas fa-eye"></i>
                             </button>
                         </div>
@@ -269,13 +259,53 @@ class MedicionesManager {
 
     getEventClass(evento) {
         const classes = {
-            'Normal': 'event-normal',
-            'ZERO': 'event-zero',
-            'SPAN': 'event-span',
-            'INICIO_GAS_PATRON': 'event-start-gas',
-            'FIN_INYECCION_GAS': 'event-end-injection'
+            'Normal': 'normal',
+            'ZERO': 'alarma',
+            'SPAN': 'mantenimiento',
+            'INICIO_GAS_PATRON': 'mantenimiento',
+            'FIN_INYECCION_GAS': 'mantenimiento'
         };
-        return classes[evento] || 'event-normal';
+        return classes[evento] || 'normal';
+    }
+
+    formatDateTime(dateTimeString) {
+        if (!dateTimeString) return 'No disponible';
+        
+        try {
+            // Intentar parsear la fecha
+            let date;
+            
+            // Si es formato ISO (con Z al final)
+            if (dateTimeString.includes('T') && dateTimeString.includes('Z')) {
+                date = new Date(dateTimeString);
+            }
+            // Si es formato local (YYYY-MM-DD HH:mm:ss)
+            else if (dateTimeString.includes(' ') && dateTimeString.length === 19) {
+                date = new Date(dateTimeString);
+            }
+            // Otros formatos
+            else {
+                date = new Date(dateTimeString);
+            }
+            
+            // Verificar si la fecha es válida
+            if (isNaN(date.getTime())) {
+                return dateTimeString; // Retornar original si no se puede parsear
+            }
+            
+            // Formatear a DD/MM/YYYY HH:mm:ss
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const year = date.getFullYear();
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            const seconds = date.getSeconds().toString().padStart(2, '0');
+            
+            return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+        } catch (error) {
+            console.error('Error formateando fecha:', error, dateTimeString);
+            return dateTimeString;
+        }
     }
 
     async viewMedicionDetail(medicionId) {
