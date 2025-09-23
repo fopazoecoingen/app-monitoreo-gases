@@ -10,6 +10,9 @@ const statusText = document.getElementById('statusText');
 const loadingOverlay = document.getElementById('loadingOverlay');
 const toast = document.getElementById('toast');
 
+// Tab management
+let currentTab = 'realtime';
+
 // Gas value elements (only for monitoring view now)
 // const o2Value = document.getElementById('o2Value'); // Removed from main view
 // const coValue = document.getElementById('coValue'); // Removed from main view  
@@ -50,10 +53,10 @@ if (!lastEvent) {
     console.error('lastEvent element not found');
 }
 if (!totalReadingsElement) {
-    console.error('totalReadingsElement not found');
+    // console.error('totalReadingsElement not found'); // Comentado - elemento no existe
 }
 if (!totalEventsElement) {
-    console.error('totalEventsElement not found');
+    // console.error('totalEventsElement not found'); // Comentado - elemento no existe
 }
 if (!excelFileStatus) {
     console.error('excelFileStatus element not found');
@@ -201,6 +204,16 @@ function setupEventListeners() {
         if (monitoringTab && monitoringTab.classList.contains('active')) {
             updateMonitoringView(data);
         }
+    });
+    
+    // Measurement started listener
+    window.electronAPI.onMeasurementStarted((event, data) => {
+        showMeasurementStartedNotification(data.measurementId);
+    });
+    
+    // Measurement completed listener
+    window.electronAPI.onMeasurementCompleted((event, data) => {
+        showMeasurementCompletedNotification(data);
     });
     
     window.electronAPI.onDataError((event, error) => {
@@ -467,6 +480,18 @@ function switchTab(tabName) {
     // Add active class to selected menu item and pane
     document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
     document.getElementById(`${tabName}-tab`).classList.add('active');
+    
+    // Update current tab
+    currentTab = tabName;
+    
+    // Initialize mediciones manager if switching to mediciones tab
+    if (tabName === 'mediciones' && !window.medicionesManager) {
+        setTimeout(() => {
+            if (typeof MedicionesManager !== 'undefined') {
+                window.medicionesManager = new MedicionesManager();
+            }
+        }, 100);
+    }
 }
 
 function toggleSidebar() {
@@ -537,6 +562,64 @@ function showToast(type, message) {
     setTimeout(() => {
         toast.classList.remove('show');
     }, 3000);
+}
+
+function showMeasurementStartedNotification(measurementId) {
+    const notification = document.createElement('div');
+    notification.className = 'measurement-notification started';
+    notification.innerHTML = `
+        <div class="notification-content">
+            <i class="fas fa-play-circle"></i>
+            <div class="notification-text">
+                <strong>Medición Iniciada</strong>
+                <span>ID: ${measurementId}</span>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 100);
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            if (document.body.contains(notification)) {
+                document.body.removeChild(notification);
+            }
+        }, 300);
+    }, 4000);
+}
+
+function showMeasurementCompletedNotification(data) {
+    const notification = document.createElement('div');
+    notification.className = 'measurement-notification completed';
+    notification.innerHTML = `
+        <div class="notification-content">
+            <i class="fas fa-check-circle"></i>
+            <div class="notification-text">
+                <strong>Medición Completada</strong>
+                <span>ID: ${data.measurementId} | Duración: ${data.duration}s | Lecturas: ${data.totalReadings}</span>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 100);
+    
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            if (document.body.contains(notification)) {
+                document.body.removeChild(notification);
+            }
+        }, 300);
+    }, 5000);
 }
 
 // Chart Functions

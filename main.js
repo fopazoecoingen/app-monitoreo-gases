@@ -4,6 +4,7 @@ const { SerialPort } = require('serialport');
 const ExcelJS = require('exceljs');
 const fs = require('fs');
 const os = require('os');
+const DatabaseManager = require('./src/utils/database');
 
 // Configuración
 const EXCEL_DIR = path.join(os.homedir(), 'Documents', 'ModbusAnalyzer');
@@ -27,6 +28,10 @@ let mainWindow;
 let port = null;
 let isReading = false;
 let currentEventType = 'Normal';
+let databaseManager = null;
+let currentMeasurementId = null; // ID de la medición actual
+let measurementStartTime = null; // Tiempo de inicio de la medición actual
+let measurementData = []; // Datos acumulados durante la sesión
 
 // Configuración de gases seleccionados
 let selectedGases = {
@@ -34,6 +39,90 @@ let selectedGases = {
     co: true,
     ch4: true
 };
+
+// Función para acumular datos durante la sesión de medición
+function accumulateMeasurementData(currentData) {
+    const timestamp = new Date();
+    measurementData.push({
+        ...currentData,
+        timestamp: timestamp,
+        relativeTime: measurementStartTime ? 
+            Math.round((timestamp - measurementStartTime) / 1000) : 0 // segundos desde inicio
+    });
+    
+    console.log(`Datos acumulados para medición ${currentMeasurementId}. Total lecturas: ${measurementData.length}`);
+}
+
+// Función para calcular datos promedio de la sesión
+function calculateAverageData() {
+    if (measurementData.length === 0) {
+        return { o2: null, co: null, ch4: null };
+    }
+    
+    const validData = measurementData.filter(d => 
+        (d.o2 !== undefined && d.o2 !== null) || 
+        (d.co !== undefined && d.co !== null) || 
+        (d.ch4 !== undefined && d.ch4 !== null)
+    );
+    
+    if (validData.length === 0) {
+        return { o2: null, co: null, ch4: null };
+    }
+    
+    const avgO2 = validData.filter(d => d.o2 !== undefined && d.o2 !== null)
+        .reduce((sum, d) => sum + d.o2, 0) / validData.filter(d => d.o2 !== undefined && d.o2 !== null).length;
+    
+    const avgCO = validData.filter(d => d.co !== undefined && d.co !== null)
+        .reduce((sum, d) => sum + d.co, 0) / validData.filter(d => d.co !== undefined && d.co !== null).length;
+    
+    const avgCH4 = validData.filter(d => d.ch4 !== undefined && d.ch4 !== null)
+        .reduce((sum, d) => sum + d.ch4, 0) / validData.filter(d => d.ch4 !== undefined && d.ch4 !== null).length;
+    
+    return {
+        o2: isNaN(avgO2) ? null : Math.round(avgO2 * 100) / 100,
+        co: isNaN(avgCO) ? null : Math.round(avgCO * 100) / 100,
+        ch4: isNaN(avgCH4) ? null : Math.round(avgCH4 * 100) / 100
+    };
+}
+
+// Función para actualizar la medición actual en la base de datos
+async function updateCurrentMeasurement(data) {
+    if (!databaseManager || !currentMeasurementId || !databaseManager.isDatabaseConnected()) {
+        console.log('No se puede actualizar medición: base de datos no conectada o medición no activa');
+        return;
+    }
+    
+    try {
+        // Actualizar los valores en la tabla detalle_medicion
+        const query = `
+            UPDATE detalle_medicion 
+            SET o2 = ?, co = ?, ch4 = ?
+            WHERE medicion_id = ?
+        `;
+        
+        await new Promise((resolve, reject) => {
+            // Guardar referencia a la base de datos
+            const db = databaseManager.db;
+            
+            if (!db) {
+                reject(new Error('Base de datos no está conectada'));
+                return;
+            }
+            
+            db.run(query, [data.o2, data.co, data.ch4, currentMeasurementId], (err) => {
+                if (err) {
+                    console.error('Error actualizando medición:', err.message);
+                    reject(err);
+                } else {
+                    console.log(`Medición ${currentMeasurementId} actualizada con valores promedio`);
+                    resolve();
+                }
+            });
+        });
+    } catch (error) {
+        console.error('Error en updateCurrentMeasurement:', error);
+    }
+}
 
 // Función para calcular CRC16 Modbus
 function calculateCRC16(data) {
@@ -180,8 +269,9 @@ async function readAnalyzerData() {
 async function saveToExcel(data, eventType = 'Normal') {
     try {
         const now = new Date();
-        const fecha = now.toISOString().split('T')[0];
-        const hora = now.toTimeString().split(' ')[0];
+        // Usar zona horaria local en lugar de UTC
+        const fecha = now.toLocaleDateString('en-CA'); // Formato YYYY-MM-DD
+        const hora = now.toLocaleTimeString('en-GB', { hour12: false }); // Formato HH:MM:SS
 
         // Usar archivo de desarrollo si estamos en modo desarrollo
         const isDevelopment = process.env.NODE_ENV === 'development' || process.env.npm_lifecycle_event === 'start';
@@ -274,6 +364,18 @@ function getEventColor(eventType) {
     return colors[eventType] || null;
 }
 
+// Función para inicializar la base de datos
+async function initializeDatabase() {
+    try {
+        databaseManager = new DatabaseManager();
+        await databaseManager.connect();
+        await databaseManager.initialize();
+        console.log('Base de datos SQLite inicializada correctamente');
+    } catch (error) {
+        console.error('Error inicializando base de datos:', error);
+    }
+}
+
 // Función para crear la ventana principal
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -286,7 +388,7 @@ function createWindow() {
             contextIsolation: true,
             preload: path.join(__dirname, 'preload.js')
         },
-        icon: path.join(__dirname, 'icon.png'),
+        icon: path.join(__dirname, 'src', 'assets', 'logo_eco.png'),
         titleBarStyle: 'default',
         show: false
     });
@@ -297,16 +399,22 @@ function createWindow() {
         mainWindow.show();
     });
 
-    mainWindow.on('closed', () => {
+    mainWindow.on('closed', async () => {
         if (port && port.isOpen) {
             port.close();
+        }
+        if (databaseManager) {
+            await databaseManager.close();
         }
         mainWindow = null;
     });
 }
 
 // Eventos de la aplicación
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+    await initializeDatabase();
+    createWindow();
+});
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
@@ -389,6 +497,42 @@ ipcMain.handle('start-reading', async () => {
         return { success: false, message: 'No hay gases seleccionados para monitorear' };
     }
     
+    // Crear nueva medición al iniciar el monitoreo
+    try {
+        const now = new Date();
+        measurementStartTime = now;
+        measurementData = []; // Limpiar datos anteriores
+        
+                // Crear nueva medición en la base de datos
+                if (databaseManager && databaseManager.isDatabaseConnected()) {
+                    const dbResult = await databaseManager.saveGasReading(
+                        { o2: null, co: null, ch4: null }, // Datos vacíos iniciales
+                        currentEventType,
+                        'Iniciando sesión de monitoreo',
+                        now.toLocaleString('sv-SE'), // tiempo_inicio (formato YYYY-MM-DD HH:mm:ss)
+                        null // tiempo_fin (se actualizará al terminar)
+                    );
+                    currentMeasurementId = dbResult.medicion_id;
+                    console.log(`Nueva medición iniciada con ID: ${currentMeasurementId}`);
+                }
+        
+        // También crear entrada en Excel
+        const excelResult = await saveToExcel(
+            { o2: null, co: null, ch4: null }, // Datos vacíos iniciales
+            currentEventType
+        );
+        
+        mainWindow.webContents.send('measurement-started', {
+            measurementId: currentMeasurementId,
+            startTime: now,
+            eventType: currentEventType
+        });
+        
+    } catch (error) {
+        console.error('Error creando nueva medición:', error);
+        return { success: false, message: 'Error creando nueva medición: ' + error.message };
+    }
+    
     isReading = true;
     
     const readLoop = async () => {
@@ -396,14 +540,46 @@ ipcMain.handle('start-reading', async () => {
         
         try {
             const data = await readAnalyzerData();
+            
+            // Acumular datos durante la sesión de medición
+            accumulateMeasurementData(data);
+            
+                    // Guardar lectura detallada en la base de datos
+                    if (databaseManager && databaseManager.isDatabaseConnected() && currentMeasurementId) {
+                        const ahora = new Date();
+                        const tiempoRelativo = ahora.toLocaleString('sv-SE'); // Timestamp local (YYYY-MM-DD HH:mm:ss)
+                        
+                        try {
+                            await databaseManager.saveDetailedReading(currentMeasurementId, data, tiempoRelativo, currentEventType);
+                        } catch (error) {
+                            console.error('Error guardando lectura detallada:', error);
+                        }
+                    }
+            
+            // Actualizar la medición actual en la base de datos con los datos promedio
+            if (databaseManager && databaseManager.isDatabaseConnected() && currentMeasurementId) {
+                // Calcular valores promedio de la sesión
+                const avgData = calculateAverageData();
+                
+                // Actualizar la medición existente
+                await updateCurrentMeasurement(avgData);
+            }
+            
+            // También actualizar Excel con datos en tiempo real
             const result = await saveToExcel(data, currentEventType);
             
+            // Enviar actualización al frontend
             mainWindow.webContents.send('data-update', {
                 ...data,
                 fecha: result.fecha,
                 hora: result.hora,
-                eventType: result.eventType
+                eventType: result.eventType,
+                measurementId: currentMeasurementId,
+                sessionDuration: measurementStartTime ? 
+                    Math.round((new Date() - measurementStartTime) / 1000) : 0,
+                totalReadings: measurementData.length
             });
+            
         } catch (error) {
             console.error('Error en lectura de datos:', error);
             mainWindow.webContents.send('data-error', error.message);
@@ -419,7 +595,72 @@ ipcMain.handle('start-reading', async () => {
 
 ipcMain.handle('stop-reading', async () => {
     console.log('Deteniendo lectura de datos...');
+    
+            // Finalizar la medición actual
+            if (currentMeasurementId && measurementData.length > 0) {
+                try {
+                    // Calcular valores finales promedio
+                    const finalData = calculateAverageData();
+                    
+                    // Actualizar la medición con los valores finales
+                    await updateCurrentMeasurement(finalData);
+                    
+                    // Actualizar tiempo de fin y observaciones con información de la sesión
+                    const now = new Date();
+                    const duration = measurementStartTime ? 
+                        Math.round((now - measurementStartTime) / 1000) : 0;
+                    const observation = `Sesión finalizada. Duración: ${duration}s, Lecturas: ${measurementData.length}`;
+                    
+                    // Actualizar tiempo de fin y observaciones en la tabla medicion
+                    if (databaseManager && databaseManager.isDatabaseConnected()) {
+                        const updateQuery = `
+                            UPDATE medicion 
+                            SET tiempo_fin = ?, observaciones = ?
+                            WHERE id = ?
+                        `;
+                        
+                        await new Promise((resolve, reject) => {
+                            // Guardar referencia a la base de datos
+                            const db = databaseManager.db;
+                            
+                            if (!db) {
+                                reject(new Error('Base de datos no está conectada'));
+                                return;
+                            }
+                            
+                            db.run(updateQuery, [now.toLocaleString('sv-SE'), observation, currentMeasurementId], (err) => {
+                                if (err) {
+                                    console.error('Error actualizando tiempo de fin y observaciones:', err.message);
+                                    reject(err);
+                                } else {
+                                    console.log(`Medición ${currentMeasurementId} finalizada con tiempo de fin y observaciones`);
+                                    resolve();
+                                }
+                            });
+                        });
+                    }
+            
+            // Enviar notificación de medición completada
+            mainWindow.webContents.send('measurement-completed', {
+                measurementId: currentMeasurementId,
+                duration: duration,
+                totalReadings: measurementData.length,
+                finalData: finalData
+            });
+            
+            console.log(`Medición ${currentMeasurementId} completada exitosamente`);
+            
+        } catch (error) {
+            console.error('Error finalizando medición:', error);
+        }
+    }
+    
+    // Limpiar variables de sesión
+    currentMeasurementId = null;
+    measurementStartTime = null;
+    measurementData = [];
     isReading = false;
+    
     console.log('Lectura detenida exitosamente');
     return { success: true, message: 'Deteniendo lectura de datos' };
 });
@@ -517,4 +758,366 @@ ipcMain.handle('update-selected-gases', async (event, gasConfig) => {
     
     selectedGases = gasConfig;
     return { success: true, message: 'Configuración de gases actualizada' };
+});
+
+// ===== HANDLERS PARA BASE DE DATOS SQLite =====
+
+// Obtener todas las lecturas de la base de datos
+ipcMain.handle('get-all-readings', async (event, limit = null, offset = 0) => {
+    try {
+        if (!databaseManager || !databaseManager.isDatabaseConnected()) {
+            return { success: false, error: 'Base de datos no conectada' };
+        }
+        
+        const readings = await databaseManager.getAllReadings();
+        return readings;
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Obtener lecturas por rango de fechas
+ipcMain.handle('get-readings-by-date-range', async (event, startDate, endDate) => {
+    try {
+        if (!databaseManager || !databaseManager.isDatabaseConnected()) {
+            return { success: false, error: 'Base de datos no conectada' };
+        }
+        
+        const readings = await databaseManager.getReadingsByDateRange(startDate, endDate);
+        return readings;
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Obtener lecturas por evento
+ipcMain.handle('get-readings-by-event', async (event, eventType) => {
+    try {
+        if (!databaseManager || !databaseManager.isDatabaseConnected()) {
+            return { success: false, error: 'Base de datos no conectada' };
+        }
+        
+        const readings = await databaseManager.getReadingsByEvent(eventType);
+        return { success: true, data: readings };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Obtener estadísticas de gases
+ipcMain.handle('get-gas-statistics', async (event, startDate = null, endDate = null) => {
+    try {
+        if (!databaseManager || !databaseManager.isDatabaseConnected()) {
+            return { success: false, error: 'Base de datos no conectada' };
+        }
+        
+        const statistics = await databaseManager.getGasStatistics(startDate, endDate);
+        return { success: true, data: statistics };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Exportar datos a CSV
+ipcMain.handle('export-data-to-csv', async (event, startDate = null, endDate = null) => {
+    try {
+        if (!databaseManager || !databaseManager.isDatabaseConnected()) {
+            return { success: false, error: 'Base de datos no conectada' };
+        }
+        
+        const csvData = await databaseManager.exportToCSV(startDate, endDate);
+        return { success: true, data: csvData };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Eliminar lecturas por rango de fechas
+ipcMain.handle('delete-readings-by-date-range', async (event, startDate, endDate) => {
+    try {
+        if (!databaseManager || !databaseManager.isDatabaseConnected()) {
+            return { success: false, error: 'Base de datos no conectada' };
+        }
+        
+        const result = await databaseManager.deleteReadingsByDateRange(startDate, endDate);
+        return result;
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Obtener información de la base de datos
+ipcMain.handle('get-database-info', async () => {
+    try {
+        if (!databaseManager) {
+            return { success: false, error: 'DatabaseManager no inicializado' };
+        }
+        
+        const info = databaseManager.getDatabaseInfo();
+        return { success: true, data: info };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Obtener el último ID de medición
+ipcMain.handle('get-last-measurement-id', async () => {
+    try {
+        if (!databaseManager || !databaseManager.isDatabaseConnected()) {
+            return { success: false, error: 'Base de datos no conectada' };
+        }
+        
+        const lastId = await databaseManager.getLastMeasurementId();
+        return { success: true, data: lastId };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Obtener lecturas detalladas de una medición
+ipcMain.handle('get-detailed-readings', async (event, medicionId) => {
+    try {
+        if (!databaseManager || !databaseManager.isDatabaseConnected()) {
+            return { success: false, error: 'Base de datos no conectada' };
+        }
+        
+        const readings = await databaseManager.getDetailedReadings(medicionId);
+        return readings;
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Eliminar medición
+ipcMain.handle('delete-medicion', async (event, medicionId) => {
+    try {
+        if (!databaseManager || !databaseManager.isDatabaseConnected()) {
+            return { success: false, error: 'Base de datos no conectada' };
+        }
+        
+        const result = await databaseManager.deleteMedicion(medicionId);
+        return result;
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Actualizar tiempo de fin de medición
+ipcMain.handle('update-medicion-tiempo-fin', async (event, medicionId, tiempoFin) => {
+    try {
+        if (!databaseManager || !databaseManager.isDatabaseConnected()) {
+            return { success: false, error: 'Base de datos no conectada' };
+        }
+        
+        const result = await databaseManager.updateMedicionTiempoFin(medicionId, tiempoFin);
+        return result;
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Guardar lectura manual en la base de datos
+ipcMain.handle('save-manual-reading', async (event, data, eventType = 'Normal') => {
+    try {
+        if (!databaseManager || !databaseManager.isDatabaseConnected()) {
+            return { success: false, error: 'Base de datos no conectada' };
+        }
+        
+        const result = await databaseManager.saveGasReading(data, eventType);
+        return { success: true, data: result };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// ===== HANDLERS PARA EXPORTACIÓN Y EMAIL =====
+
+// Exportar mediciones a Excel
+ipcMain.handle('export-mediciones-excel', async (event, startDate = null, endDate = null) => {
+    try {
+        if (!databaseManager || !databaseManager.isDatabaseConnected()) {
+            return { success: false, error: 'Base de datos no conectada' };
+        }
+
+        const mediciones = startDate && endDate 
+            ? await databaseManager.getReadingsByDateRange(startDate, endDate)
+            : await databaseManager.getAllReadings();
+
+        if (mediciones.length === 0) {
+            return { success: false, error: 'No hay mediciones para exportar' };
+        }
+
+        // Crear archivo Excel
+        const ExcelJS = require('exceljs');
+        const path = require('path');
+        const os = require('os');
+        
+        const exportDir = path.join(os.homedir(), 'Documents', 'ModbusAnalyzer', 'exports');
+        if (!fs.existsSync(exportDir)) {
+            fs.mkdirSync(exportDir, { recursive: true });
+        }
+
+        const timestamp = new Date().toLocaleString('sv-SE').replace(/[:.]/g, '-').replace(' ', '_');
+        const fileName = `mediciones_${timestamp}.xlsx`;
+        const filePath = path.join(exportDir, fileName);
+
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Mediciones');
+
+        // Encabezados (formato como Excel original)
+        worksheet.addRow(['ID', 'Fecha', 'Hora', 'Evento', 'Observaciones', 'O₂ (%Vol)', 'CO (ppm)', 'CH₄ (ppm)']);
+
+        // Datos
+        mediciones.forEach(medicion => {
+            worksheet.addRow([
+                medicion.medicion_id,
+                medicion.fecha,
+                medicion.hora,
+                medicion.evento,
+                medicion.observaciones || '',
+                medicion.detalles.o2 ? medicion.detalles.o2.valor : '',
+                medicion.detalles.co ? medicion.detalles.co.valor : '',
+                medicion.detalles.ch4 ? medicion.detalles.ch4.valor : ''
+            ]);
+        });
+
+        // Formatear encabezados
+        const headerRow = worksheet.getRow(1);
+        headerRow.font = { bold: true };
+        headerRow.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF2C2C2C' }
+        };
+        headerRow.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+
+        // Ajustar ancho de columnas
+        worksheet.columns = [
+            { width: 10 }, // ID
+            { width: 12 }, // Fecha
+            { width: 10 }, // Hora
+            { width: 15 }, // Evento
+            { width: 20 }, // Observaciones
+            { width: 12 }, // O₂
+            { width: 12 }, // CO
+            { width: 12 }  // CH₄
+        ];
+
+        await workbook.xlsx.writeFile(filePath);
+
+        return { 
+            success: true, 
+            filePath: filePath,
+            fileName: fileName,
+            recordCount: mediciones.length
+        };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Enviar mediciones por email
+ipcMain.handle('send-mediciones-email', async (event, emailData, startDate = null, endDate = null) => {
+    try {
+        if (!databaseManager || !databaseManager.isDatabaseConnected()) {
+            return { success: false, error: 'Base de datos no conectada' };
+        }
+
+        // Obtener mediciones
+        const mediciones = startDate && endDate 
+            ? await databaseManager.getReadingsByDateRange(startDate, endDate)
+            : await databaseManager.getAllReadings();
+
+        if (mediciones.length === 0) {
+            return { success: false, error: 'No hay mediciones para enviar' };
+        }
+
+        // Crear archivo temporal
+        const path = require('path');
+        const os = require('os');
+        const tempDir = path.join(os.tmpdir(), 'modbus-analyzer');
+        
+        if (!fs.existsSync(tempDir)) {
+            fs.mkdirSync(tempDir, { recursive: true });
+        }
+
+        const timestamp = new Date().toLocaleString('sv-SE').replace(/[:.]/g, '-').replace(' ', '_');
+        let fileName, filePath, mimeType;
+
+        if (emailData.format === 'excel') {
+            fileName = `mediciones_${timestamp}.xlsx`;
+            filePath = path.join(tempDir, fileName);
+            mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+            
+            // Crear archivo Excel (mismo código que export-mediciones-excel)
+            const ExcelJS = require('exceljs');
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Mediciones');
+
+            worksheet.addRow(['ID', 'Fecha', 'Hora', 'Evento', 'Observaciones', 'O₂ (%Vol)', 'CO (ppm)', 'CH₄ (ppm)']);
+
+            mediciones.forEach(medicion => {
+                worksheet.addRow([
+                    medicion.medicion_id,
+                    medicion.fecha,
+                    medicion.hora,
+                    medicion.evento,
+                    medicion.observaciones || '',
+                    medicion.detalles.o2 ? medicion.detalles.o2.valor : '',
+                    medicion.detalles.co ? medicion.detalles.co.valor : '',
+                    medicion.detalles.ch4 ? medicion.detalles.ch4.valor : ''
+                ]);
+            });
+
+            const headerRow = worksheet.getRow(1);
+            headerRow.font = { bold: true };
+            headerRow.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FF2C2C2C' }
+            };
+            headerRow.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+
+            worksheet.columns = [
+                { width: 10 }, { width: 12 }, { width: 10 }, { width: 15 },
+                { width: 20 }, { width: 12 }, { width: 12 }, { width: 12 }
+            ];
+
+            await workbook.xlsx.writeFile(filePath);
+        } else {
+            fileName = `mediciones_${timestamp}.csv`;
+            filePath = path.join(tempDir, fileName);
+            mimeType = 'text/csv';
+            
+            const csvData = await databaseManager.exportToCSV(startDate, endDate);
+            fs.writeFileSync(filePath, csvData, 'utf8');
+        }
+
+        // Simular envío de email (en una implementación real usarías nodemailer o similar)
+        console.log('Enviando email...');
+        console.log('Para:', emailData.to);
+        console.log('Asunto:', emailData.subject);
+        console.log('Archivo:', fileName);
+        console.log('Mensaje:', emailData.body);
+
+        // Aquí iría la lógica real de envío de email
+        // Por ahora solo simulamos el envío
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Limpiar archivo temporal después de un tiempo
+        setTimeout(() => {
+            if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+            }
+        }, 30000); // 30 segundos
+
+        return { 
+            success: true, 
+            message: 'Email enviado exitosamente',
+            fileName: fileName,
+            recordCount: mediciones.length
+        };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
 });

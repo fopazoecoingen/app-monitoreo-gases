@@ -23,6 +23,7 @@
   "dependencies": {
     "exceljs": "^4.4.0",
     "serialport": "^12.0.0",
+    "sqlite3": "^5.1.7",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
@@ -45,11 +46,12 @@
       "index.html",
       "styles.css",
       "modbus-analyzer.js",
+      "src/**/*",
       "node_modules/**/*"
     ],
     "win": {
       "target": "portable",
-      "icon": "icon.ico"
+      "icon": "src/assets/logo_eco.png"
     },
     "nsis": {
       "oneClick": false,

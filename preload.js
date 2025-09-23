@@ -26,9 +26,29 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getSelectedGases: () => ipcRenderer.invoke('get-selected-gases'),
     updateSelectedGases: (gasConfig) => ipcRenderer.invoke('update-selected-gases', gasConfig),
     
+    // Database operations
+    getAllReadings: (limit, offset) => ipcRenderer.invoke('get-all-readings', limit, offset),
+    getReadingsByDateRange: (startDate, endDate) => ipcRenderer.invoke('get-readings-by-date-range', startDate, endDate),
+    getReadingsByEvent: (eventType) => ipcRenderer.invoke('get-readings-by-event', eventType),
+    getGasStatistics: (startDate, endDate) => ipcRenderer.invoke('get-gas-statistics', startDate, endDate),
+    exportDataToCSV: (startDate, endDate) => ipcRenderer.invoke('export-data-to-csv', startDate, endDate),
+    deleteReadingsByDateRange: (startDate, endDate) => ipcRenderer.invoke('delete-readings-by-date-range', startDate, endDate),
+    getDatabaseInfo: () => ipcRenderer.invoke('get-database-info'),
+    getLastMeasurementId: () => ipcRenderer.invoke('get-last-measurement-id'),
+    getDetailedReadings: (medicionId) => ipcRenderer.invoke('get-detailed-readings', medicionId),
+    deleteMedicion: (medicionId) => ipcRenderer.invoke('delete-medicion', medicionId),
+    updateMedicionTiempoFin: (medicionId, tiempoFin) => ipcRenderer.invoke('update-medicion-tiempo-fin', medicionId, tiempoFin),
+    saveManualReading: (data, eventType) => ipcRenderer.invoke('save-manual-reading', data, eventType),
+    
+    // Export and email operations
+    exportMedicionesExcel: (startDate, endDate) => ipcRenderer.invoke('export-mediciones-excel', startDate, endDate),
+    sendMedicionesEmail: (emailData, startDate, endDate) => ipcRenderer.invoke('send-mediciones-email', emailData, startDate, endDate),
+    
     // Event listeners
     onDataUpdate: (callback) => ipcRenderer.on('data-update', callback),
     onDataError: (callback) => ipcRenderer.on('data-error', callback),
+    onMeasurementStarted: (callback) => ipcRenderer.on('measurement-started', callback),
+    onMeasurementCompleted: (callback) => ipcRenderer.on('measurement-completed', callback),
     
     // Remove listeners
     removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel)

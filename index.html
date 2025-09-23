@@ -4,10 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitor Real de Analizador de Gases</title>
+    <link rel="icon" type="image/png" href="src/assets/logo_eco.png?v=1">
+    <link rel="shortcut icon" type="image/png" href="src/assets/logo_eco.png?v=1">
+    <link rel="apple-touch-icon" href="src/assets/logo_eco.png?v=1">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="assets/css/fonts.css">
     <link rel="stylesheet" href="assets/css/fontawesome-local.css">
     <script src="assets/js/chart.js"></script>
+    <script src="node_modules/xlsx/dist/xlsx.full.min.js"></script>
 </head>
 <body>
     <div class="app-container">
@@ -83,6 +87,10 @@
                     
                     <div class="menu-section">
                         <div class="menu-title">Datos</div>
+                        <a href="#" class="menu-item" data-tab="mediciones">
+                            <i class="fas fa-database"></i>
+                            <span>Gestión de Mediciones</span>
+                        </a>
                         <a href="#" class="menu-item" data-tab="history">
                             <i class="fas fa-history"></i>
                             <span>Historial</span>
@@ -429,6 +437,177 @@
                                     </div>
                                 </div>
                                 
+                                <!-- Mediciones Tab -->
+                                <div class="tab-pane" id="mediciones-tab">
+                                    <div class="panel-header">
+                                        <i class="fas fa-database"></i>
+                                        <h2>Gestión de Mediciones</h2>
+                                    </div>
+                                    
+                                    <div class="mediciones-content">
+                                        <!-- Filtros y controles -->
+                                        <div class="mediciones-controls">
+                                            <div class="filters-row">
+                                                <div class="form-group">
+                                                    <label for="medicionDateFrom">Desde:</label>
+                                                    <input type="date" id="medicionDateFrom" class="form-control">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="medicionDateTo">Hasta:</label>
+                                                    <input type="date" id="medicionDateTo" class="form-control">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="medicionEventFilter">Evento:</label>
+                                                    <select id="medicionEventFilter" class="form-control">
+                                                        <option value="">Todos</option>
+                                                        <option value="Normal">Normal</option>
+                                                        <option value="ZERO">ZERO</option>
+                                                        <option value="SPAN">SPAN</option>
+                                                        <option value="INICIO_GAS_PATRON">Inicio Gas Patrón</option>
+                                                        <option value="FIN_INYECCION_GAS">Fin Inyección Gas</option>
+                                                    </select>
+                                                </div>
+                                                <button class="btn btn-primary" id="loadMediciones">
+                                                    <i class="fas fa-search"></i>
+                                                    Buscar Mediciones
+                                                </button>
+                                            </div>
+                                            
+                                            <div class="actions-row">
+                                                <button class="btn btn-success" id="exportMedicionesExcel">
+                                                    <i class="fas fa-file-excel"></i>
+                                                    Exportar a Excel
+                                                </button>
+                                                <button class="btn btn-info" id="exportMedicionesCSV">
+                                                    <i class="fas fa-file-csv"></i>
+                                                    Exportar a CSV
+                                                </button>
+                                                <button class="btn btn-warning" id="sendMedicionesEmail">
+                                                    <i class="fas fa-envelope"></i>
+                                                    Enviar por Email
+                                                </button>
+                                                <button class="btn btn-danger" id="deleteMediciones">
+                                                    <i class="fas fa-trash"></i>
+                                                    Eliminar Seleccionadas
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Lista de mediciones -->
+                                        <div class="mediciones-list">
+                                            <div class="list-header">
+                                                <h3>Lista de Mediciones</h3>
+                                                <div class="list-stats">
+                                                    <span id="medicionesCount">Total: 0</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="mediciones-table-container">
+                                                <table id="medicionesTable" class="mediciones-table">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>
+                                                                <input type="checkbox" id="selectAllMediciones">
+                                                            </th>
+                                                            <th>ID</th>
+                                                            <th>Fecha</th>
+                                                            <th>Hora</th>
+                                                            <th>Evento</th>
+                                                            <th>Observaciones</th>
+                                                            <th>Gases</th>
+                                                            <th>Acciones</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="medicionesTableBody">
+                                                        <tr>
+                                                            <td colspan="8" class="no-data">No hay mediciones disponibles</td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            
+                                            <!-- Paginación -->
+                                            <div class="mediciones-pagination">
+                                                <button id="prevPageBtn" class="btn btn-secondary" disabled>
+                                                    <i class="fas fa-chevron-left"></i>
+                                                    Anterior
+                                                </button>
+                                                <span id="paginationInfo">Página 1 de 1</span>
+                                                <button id="nextPageBtn" class="btn btn-secondary" disabled>
+                                                    Siguiente
+                                                    <i class="fas fa-chevron-right"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Detalle de Medición Modal -->
+                                <div class="modal" id="medicionDetailModal">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h3>Detalle de Medición</h3>
+                                            <button class="modal-close" id="closeMedicionDetail">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                        <div class="modal-body" id="medicionDetailContent">
+                                            <!-- Contenido dinámico -->
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button class="btn btn-primary" id="exportMedicionDetail">
+                                                <i class="fas fa-download"></i>
+                                                Exportar Esta Medición
+                                            </button>
+                                            <button class="btn btn-secondary" id="closeMedicionDetailBtn">
+                                                Cerrar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Modal de Envío por Email -->
+                                <div class="modal" id="emailModal">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h3>Enviar Mediciones por Email</h3>
+                                            <button class="modal-close" id="closeEmailModal">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="form-group">
+                                                <label for="emailTo">Para:</label>
+                                                <input type="email" id="emailTo" class="form-control" placeholder="destinatario@ejemplo.com" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="emailSubject">Asunto:</label>
+                                                <input type="text" id="emailSubject" class="form-control" value="Reporte de Mediciones de Gases" required>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="emailBody">Mensaje:</label>
+                                                <textarea id="emailBody" class="form-control" rows="4" placeholder="Mensaje adicional..."></textarea>
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="emailFormat">Formato:</label>
+                                                <select id="emailFormat" class="form-control">
+                                                    <option value="excel">Excel (.xlsx)</option>
+                                                    <option value="csv">CSV (.csv)</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button class="btn btn-primary" id="sendEmailBtn">
+                                                <i class="fas fa-paper-plane"></i>
+                                                Enviar Email
+                                            </button>
+                                            <button class="btn btn-secondary" id="closeEmailModalBtn">
+                                                Cancelar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <!-- History Tab -->
                                 <div class="tab-pane" id="history-tab">
                                     <div class="panel-header">
@@ -565,5 +744,6 @@
     </div>
 
     <script src="renderer.js"></script>
+    <script src="src/js/mediciones-manager.js"></script>
 </body>
 </html>
