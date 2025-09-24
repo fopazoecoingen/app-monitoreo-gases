@@ -60,11 +60,11 @@
                     <div class="menu-section">
                         <div class="menu-title">Principal</div>
                         <a href="#" class="menu-item active" data-tab="realtime">
-                            <i class="fas fa-chart-bar"></i>
+                            <i class="fas fa-eye"></i>
                             <span>Datos en Tiempo Real</span>
                         </a>
                         <a href="#" class="menu-item" data-tab="monitoring-view">
-                            <i class="fas fa-tachometer-alt"></i>
+                            <i class="fas fa-tv"></i>
                             <span>Vista de Monitoreo</span>
                         </a>
                         <a href="#" class="menu-item" data-tab="graphs">
@@ -76,7 +76,7 @@
                     <div class="menu-section">
                         <div class="menu-title">Control</div>
                         <a href="#" class="menu-item" data-tab="monitoring">
-                            <i class="fas fa-play-circle"></i>
+                            <i class="fas fa-play"></i>
                             <span>Monitoreo</span>
                         </a>
                         <a href="#" class="menu-item" data-tab="settings">
@@ -172,27 +172,38 @@
                                 </div>
                             </div>
                             
-                            
-                            <!-- Status Information -->
-                            <div class="status-info">
-                                <div class="status-row">
-                                    <div class="status-item">
-                                        <span class="status-label">Estado Actual:</span>
-                                        <span id="calibrationStatus" class="status-value">Normal</span>
+                            <!-- Lecturas Actuales -->
+                            <div class="current-readings">
+                                <h3>Lecturas Actuales</h3>
+                                <div class="readings-grid">
+                                    <div class="reading-card" id="o2ReadingCard">
+                                        <div class="reading-header">
+                                            <i class="fas fa-wind reading-icon o2-icon"></i>
+                                            <span class="reading-label">O₂ - Oxígeno</span>
+                                        </div>
+                                        <div class="reading-value" id="o2Value">--</div>
+                                        <div class="reading-unit">%Vol</div>
+                                        <div class="reading-time" id="o2Time">--:--:--</div>
                                     </div>
-                                    <div class="status-item">
-                                        <span class="status-label">Último Evento:</span>
-                                        <span id="lastEvent" class="status-value">-</span>
+                                    
+                                    <div class="reading-card" id="coReadingCard">
+                                        <div class="reading-header">
+                                            <i class="fas fa-smog reading-icon co-icon"></i>
+                                            <span class="reading-label">CO - Monóxido</span>
+                                        </div>
+                                        <div class="reading-value" id="coValue">--</div>
+                                        <div class="reading-unit">ppm</div>
+                                        <div class="reading-time" id="coTime">--:--:--</div>
                                     </div>
-                                </div>
-                                <div class="status-row">
-                                    <div class="status-item">
-                                        <span class="status-label">Última Lectura:</span>
-                                        <span id="lastReadingValue" class="status-value">-:-:-</span>
-                                    </div>
-                                    <div class="status-item">
-                                        <span class="status-label">Datos:</span>
-                                        <span id="dataCount" class="status-value">0</span>
+                                    
+                                    <div class="reading-card" id="ch4ReadingCard">
+                                        <div class="reading-header">
+                                            <i class="fas fa-fire reading-icon ch4-icon"></i>
+                                            <span class="reading-label">CH₄ - Metano</span>
+                                        </div>
+                                        <div class="reading-value" id="ch4Value">--</div>
+                                        <div class="reading-unit">ppm</div>
+                                        <div class="reading-time" id="ch4Time">--:--:--</div>
                                     </div>
                                 </div>
                             </div>
@@ -342,20 +353,7 @@
                                                 <input type="number" id="intervalInput" class="form-control" value="2.0" step="0.1" min="0.5" max="60">
                                             </div>
                                         </div>
-                                        
-                                        <div class="control-section">
-                                            <h3>Información del Sistema</h3>
-                                            <div class="process-info">
-                                                <div class="info-item">
-                                                    <span class="info-label">Archivo Excel:</span>
-                                                    <span id="excelFileStatus" class="info-value">Cargando...</span>
-                                                </div>
-                                                <div class="info-item">
-                                                    <span class="info-label">Estado de Conexión:</span>
-                                                    <span id="connectionStatusInfo" class="info-value">Desconectado</span>
-                                                </div>
-                                            </div>
-                                        </div>
+                                
                                     </div>
                                 </div>
                                 

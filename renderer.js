@@ -17,9 +17,6 @@ let currentTab = 'realtime';
 // const o2Value = document.getElementById('o2Value'); // Removed from main view
 // const coValue = document.getElementById('coValue'); // Removed from main view  
 // const ch4Value = document.getElementById('ch4Value'); // Removed from main view
-const lastReadingValue = document.getElementById('lastReadingValue');
-const dataCount = document.getElementById('dataCount');
-
 // Calibration elements (only used in monitoring view now)
 const calibrationStatus = document.getElementById('calibrationStatus');
 const lastEvent = document.getElementById('lastEvent');
@@ -195,8 +192,8 @@ function setupEventListeners() {
     
     // Data update listeners
     window.electronAPI.onDataUpdate((event, data) => {
+        console.log('🎯 Evento data-update recibido:', data);
         updateGasValues(data);
-        updateLastReading(data);
         updateDataCount();
         
         // Update monitoring view if active
@@ -325,22 +322,103 @@ function updateStatus(status) {
 }
 
 function updateGasValues(data) {
-    // Gas values are now only updated in monitoring view
-    // Main view no longer displays gas values
-    console.log('Gas values updated:', data);
+    console.log('📊 updateGasValues llamado con datos:', data);
+    console.log('📊 Estructura de datos recibida:', {
+        o2: data.o2,
+        co: data.co,
+        ch4: data.ch4,
+        fecha: data.fecha,
+        hora: data.hora,
+        eventType: data.eventType
+    });
+    
+    // Actualizar las tarjetas de lecturas en tiempo real
+    updateReadingCards(data);
     
     // Actualizar gráficos
     updateCharts(data);
 }
 
-function updateLastReading(data) {
-    lastReadingValue.textContent = `${data.hora}`;
+function updateReadingCards(data) {
+    console.log('🔄 updateReadingCards llamado con datos:', data);
+    
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('es-CL', { 
+        hour12: false, 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+    });
+    
+    console.log('⏰ Tiempo formateado:', timeString);
+    
+    // Actualizar O2
+    const o2ValueElement = document.getElementById('o2Value');
+    const o2TimeElement = document.getElementById('o2Time');
+    const o2Card = document.getElementById('o2ReadingCard');
+    
+    console.log('🔍 Elementos O2 encontrados:', {
+        value: !!o2ValueElement,
+        time: !!o2TimeElement,
+        card: !!o2Card,
+        dataO2: data.o2
+    });
+    
+    if (o2ValueElement && data.o2 !== undefined) {
+        o2ValueElement.textContent = data.o2.toFixed(2);
+        if (o2TimeElement) o2TimeElement.textContent = timeString;
+        if (o2Card) o2Card.classList.add('o2-card');
+        console.log('✅ O2 actualizado:', data.o2.toFixed(2));
+    } else {
+        console.log('❌ O2 no actualizado - elemento:', !!o2ValueElement, 'dato:', data.o2);
+    }
+    
+    // Actualizar CO
+    const coValueElement = document.getElementById('coValue');
+    const coTimeElement = document.getElementById('coTime');
+    const coCard = document.getElementById('coReadingCard');
+    
+    console.log('🔍 Elementos CO encontrados:', {
+        value: !!coValueElement,
+        time: !!coTimeElement,
+        card: !!coCard,
+        dataCO: data.co
+    });
+    
+    if (coValueElement && data.co !== undefined) {
+        coValueElement.textContent = data.co.toFixed(2);
+        if (coTimeElement) coTimeElement.textContent = timeString;
+        if (coCard) coCard.classList.add('co-card');
+        console.log('✅ CO actualizado:', data.co.toFixed(2));
+    } else {
+        console.log('❌ CO no actualizado - elemento:', !!coValueElement, 'dato:', data.co);
+    }
+    
+    // Actualizar CH4
+    const ch4ValueElement = document.getElementById('ch4Value');
+    const ch4TimeElement = document.getElementById('ch4Time');
+    const ch4Card = document.getElementById('ch4ReadingCard');
+    
+    console.log('🔍 Elementos CH4 encontrados:', {
+        value: !!ch4ValueElement,
+        time: !!ch4TimeElement,
+        card: !!ch4Card,
+        dataCH4: data.ch4
+    });
+    
+    if (ch4ValueElement && data.ch4 !== undefined) {
+        ch4ValueElement.textContent = data.ch4.toFixed(2);
+        if (ch4TimeElement) ch4TimeElement.textContent = timeString;
+        if (ch4Card) ch4Card.classList.add('ch4-card');
+        console.log('✅ CH4 actualizado:', data.ch4.toFixed(2));
+    } else {
+        console.log('❌ CH4 no actualizado - elemento:', !!ch4ValueElement, 'dato:', data.ch4);
+    }
 }
 
 function updateDataCount() {
-    const count = parseInt(dataCount.textContent) + 1;
-    dataCount.textContent = count;
     if (totalReadingsElement) {
+        const count = parseInt(totalReadingsElement.textContent) + 1;
         totalReadingsElement.textContent = count;
     }
 }
@@ -504,11 +582,38 @@ function closeSidebar() {
     sidebarOverlay.classList.remove('show');
 }
 
+function resetReadingCards() {
+    // Reset O2 card
+    const o2ValueElement = document.getElementById('o2Value');
+    const o2TimeElement = document.getElementById('o2Time');
+    const o2Card = document.getElementById('o2ReadingCard');
+    
+    if (o2ValueElement) o2ValueElement.textContent = '--';
+    if (o2TimeElement) o2TimeElement.textContent = '--:--:--';
+    if (o2Card) o2Card.classList.remove('o2-card');
+    
+    // Reset CO card
+    const coValueElement = document.getElementById('coValue');
+    const coTimeElement = document.getElementById('coTime');
+    const coCard = document.getElementById('coReadingCard');
+    
+    if (coValueElement) coValueElement.textContent = '--';
+    if (coTimeElement) coTimeElement.textContent = '--:--:--';
+    if (coCard) coCard.classList.remove('co-card');
+    
+    // Reset CH4 card
+    const ch4ValueElement = document.getElementById('ch4Value');
+    const ch4TimeElement = document.getElementById('ch4Time');
+    const ch4Card = document.getElementById('ch4ReadingCard');
+    
+    if (ch4ValueElement) ch4ValueElement.textContent = '--';
+    if (ch4TimeElement) ch4TimeElement.textContent = '--:--:--';
+    if (ch4Card) ch4Card.classList.remove('ch4-card');
+}
+
 function clearGasValues() {
-    // Gas values are now only in monitoring view
-    // Main view no longer displays gas values
-    lastReadingValue.textContent = '-:-:-';
-    dataCount.textContent = '0';
+    // Limpiar tarjetas de lecturas
+    resetReadingCards();
 }
 
 // Removed unused functions for cleaner code
