@@ -10,8 +10,7 @@ class MedicionesManager {
         this.selectedMediciones = new Set();
         this.filters = {
             startDate: null,
-            endDate: null,
-            eventType: null
+            endDate: null
         };
         
         // Limpiar campos de fecha en el HTML
@@ -71,9 +70,6 @@ class MedicionesManager {
         document.getElementById('medicionDateTo')?.addEventListener('change', (e) => {
             this.filters.endDate = e.target.value;
         });
-        document.getElementById('medicionEventFilter')?.addEventListener('change', (e) => {
-            this.filters.eventType = e.target.value || null;
-        });
 
         // Acciones
         document.getElementById('deleteMediciones')?.addEventListener('click', () => this.deleteSelectedMediciones());
@@ -132,13 +128,6 @@ class MedicionesManager {
                 console.log('✅ Mediciones cargadas:', this.mediciones.length);
                 console.log('🔍 this.mediciones después de cargar:', this.mediciones);
                 
-                // Filtrar por evento si está seleccionado
-                if (this.filters.eventType) {
-                    console.log('🔍 Filtrando por evento:', this.filters.eventType);
-                    const beforeFilter = this.mediciones.length;
-                    this.mediciones = this.mediciones.filter(m => m.evento === this.filters.eventType);
-                    console.log('📊 Después del filtro:', this.mediciones.length, 'de', beforeFilter);
-                }
 
                 console.log('🎨 Renderizando mediciones...');
                 console.log('🔍 this.mediciones antes de renderizar:', this.mediciones.length);
@@ -190,6 +179,9 @@ class MedicionesManager {
         const pageMediciones = this.mediciones.slice(startIndex, endIndex);
 
         const htmlContent = pageMediciones.map(medicion => {
+            // Debug: verificar valor de enviado_plataforma
+            console.log(`🔍 Medición ${medicion.medicion_id}: enviado_plataforma = ${medicion.enviado_plataforma} (tipo: ${typeof medicion.enviado_plataforma})`);
+            
             // Crear badges para gases que tienen datos (estructura de base de datos)
             const gasBadges = [];
             // Las mediciones de la base de datos no tienen detalles de gases individuales
@@ -414,10 +406,6 @@ class MedicionesManager {
             const fecha = new Date(lectura.created_at).toLocaleDateString('es-ES');
             const hora = new Date(lectura.created_at).toLocaleTimeString('es-ES');
             
-            // Formatear timestamp para mostrar fecha y hora de forma legible
-            const timestampFormateado = lectura.tiempo_relativo ? 
-                new Date(lectura.tiempo_relativo).toLocaleString('es-ES') : 'N/A';
-            
             return `
                 <tr class="reading-row">
                     <td class="col-index">${index + 1}</td>
@@ -426,7 +414,6 @@ class MedicionesManager {
                     <td class="col-o2">${lectura.o2 !== null ? lectura.o2.toFixed(2) : 'NULL'}</td>
                     <td class="col-co">${lectura.co !== null ? lectura.co.toFixed(2) : 'NULL'}</td>
                     <td class="col-ch4">${lectura.ch4 !== null ? lectura.ch4.toFixed(2) : 'NULL'}</td>
-                    <td class="col-tiempo">${timestampFormateado}</td>
                     <td class="col-evento">${lectura.evento || 'Normal'}</td>
                 </tr>
             `;
@@ -443,7 +430,6 @@ class MedicionesManager {
                             <th>O₂ (%Vol)</th>
                             <th>CO (ppm)</th>
                             <th>CH₄ (ppm)</th>
-                            <th>Timestamp Lectura</th>
                             <th>Evento</th>
                         </tr>
                     </thead>
@@ -566,7 +552,7 @@ class MedicionesManager {
             
             if (lecturasDetalladas.length > 0) {
                 const lecturasData = [
-                    ['#', 'Fecha', 'Hora', 'O2 (%Vol)', 'CO (ppm)', 'CH4 (ppm)', 'Timestamp Lectura', 'Evento']
+                    ['#', 'Fecha', 'Hora', 'O2 (%Vol)', 'CO (ppm)', 'CH4 (ppm)', 'Evento']
                 ];
                 
                 console.log('📊 Exportando', lecturasDetalladas.length, 'lecturas detalladas');
@@ -574,8 +560,6 @@ class MedicionesManager {
                 lecturasDetalladas.forEach((lectura, index) => {
                     const fecha = new Date(lectura.created_at).toLocaleDateString('es-ES');
                     const hora = new Date(lectura.created_at).toLocaleTimeString('es-ES');
-                    const timestampFormateado = lectura.tiempo_relativo ? 
-                        new Date(lectura.tiempo_relativo).toLocaleString('es-ES') : 'N/A';
                     
                     // Log para verificar los valores de los gases
                     if (index < 3) { // Solo las primeras 3 lecturas
@@ -594,7 +578,6 @@ class MedicionesManager {
                         lectura.o2 !== null && lectura.o2 !== undefined ? lectura.o2.toFixed(2) : 'NULL',
                         lectura.co !== null && lectura.co !== undefined ? lectura.co.toFixed(2) : 'NULL',
                         lectura.ch4 !== null && lectura.ch4 !== undefined ? lectura.ch4.toFixed(2) : 'NULL',
-                        timestampFormateado,
                         lectura.evento || 'Normal'
                     ]);
                 });

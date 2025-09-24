@@ -276,11 +276,14 @@ class DatabaseManager {
 
             // Primero insertar en tabla medicion
             const insertMedicionQuery = `
-                INSERT INTO medicion (fecha, hora, evento, observaciones, tiempo_inicio, tiempo_fin)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO medicion (fecha, hora, evento, observaciones, tiempo_inicio, tiempo_fin, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             `;
 
-            db.run(insertMedicionQuery, [fecha, hora, eventType, observaciones, tiempoInicio, tiempoFin], function(err) {
+            // Usar la misma fecha/hora para created_at
+            const created_at = `${fecha} ${hora}`;
+
+            db.run(insertMedicionQuery, [fecha, hora, eventType, observaciones, tiempoInicio, tiempoFin, created_at], function(err) {
                 if (err) {
                     console.error('Error guardando medición:', err.message);
                     reject(err);
@@ -315,9 +318,15 @@ class DatabaseManager {
             }
 
             const query = `
-                INSERT INTO lecturas_detalladas (medicion_id, o2, co, ch4, tiempo_relativo, evento)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO lecturas_detalladas (medicion_id, o2, co, ch4, tiempo_relativo, evento, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             `;
+
+            // Usar la misma fecha/hora que la medición principal
+            const now = new Date();
+            const fecha = now.toLocaleDateString('en-CA');
+            const hora = now.toLocaleTimeString('en-GB', { hour12: false });
+            const created_at = `${fecha} ${hora}`;
 
             const params = [
                 medicionId,
@@ -325,7 +334,8 @@ class DatabaseManager {
                 data.co !== undefined && data.co !== null ? data.co : null,
                 data.ch4 !== undefined && data.ch4 !== null ? data.ch4 : null,
                 tiempoRelativo,
-                evento
+                evento,
+                created_at
             ];
 
             db.run(query, params, function(err) {
@@ -432,6 +442,8 @@ class DatabaseManager {
                     m.observaciones,
                     m.tiempo_inicio,
                     m.tiempo_fin,
+                    m.enviado_plataforma,
+                    m.created_at,
                     COUNT(l.id) as total_lecturas
                 FROM medicion m
                 LEFT JOIN lecturas_detalladas l ON m.id = l.medicion_id

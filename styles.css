@@ -3940,3 +3940,54 @@ input[type="checkbox"] {
         grid-template-columns: 1fr;
     }
 }
+
+/* ===== ESTILOS COMPACTOS PARA FILTROS ===== */
+
+.mediciones-controls .filters-row.compact {
+    display: flex !important;
+    gap: 4px !important;
+    align-items: center !important;
+    margin-bottom: 2px !important;
+    flex-wrap: nowrap !important;
+}
+
+.mediciones-controls .form-group.compact {
+    margin: 0 !important;
+    margin-right: 0 !important;
+    min-width: 60px !important;
+}
+
+.mediciones-controls .form-group.compact label {
+    font-size: 9px !important;
+    margin-bottom: 0 !important;
+    color: #ccc !important;
+}
+
+.mediciones-controls .filters-row label.compact {
+    font-size: 10px !important;
+    margin: 0 !important;
+    margin-right: 2px !important;
+    color: #ccc !important;
+    white-space: nowrap !important;
+    display: inline-block !important;
+}
+
+.mediciones-controls .form-control.compact {
+    height: 28px !important;
+    font-size: 12px !important;
+    padding: 3px 6px !important;
+    border-radius: 4px !important;
+    width: 85px !important;
+}
+
+.mediciones-controls .btn.compact {
+    height: 28px !important;
+    padding: 3px 8px !important;
+    font-size: 12px !important;
+    min-width: 55px !important;
+}
+
+.mediciones-controls {
+    padding: 2px 0 !important;
+    margin-bottom: 2px !important;
+}

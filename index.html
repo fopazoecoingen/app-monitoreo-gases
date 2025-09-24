@@ -447,36 +447,18 @@
                                     <div class="mediciones-content">
                                         <!-- Filtros y controles -->
                                         <div class="mediciones-controls">
-                                            <div class="filters-row">
-                                                <div class="form-group">
-                                                    <label for="medicionDateFrom">Desde:</label>
-                                                    <input type="date" id="medicionDateFrom" class="form-control">
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="medicionDateTo">Hasta:</label>
-                                                    <input type="date" id="medicionDateTo" class="form-control">
-                                                </div>
-                                                <div class="form-group">
-                                                    <label for="medicionEventFilter">Evento:</label>
-                                                    <select id="medicionEventFilter" class="form-control">
-                                                        <option value="">Todos</option>
-                                                        <option value="Normal">Normal</option>
-                                                        <option value="ZERO">ZERO</option>
-                                                        <option value="SPAN">SPAN</option>
-                                                        <option value="INICIO_GAS_PATRON">Inicio Gas Patrón</option>
-                                                        <option value="FIN_INYECCION_GAS">Fin Inyección Gas</option>
-                                                    </select>
-                                                </div>
-                                                <button class="btn btn-primary" id="loadMediciones">
+                                            <div class="filters-row compact">
+                                                <label for="medicionDateFrom" class="compact">Desde:</label>
+                                                <input type="date" id="medicionDateFrom" class="form-control compact">
+                                                <label for="medicionDateTo" class="compact">Hasta:</label>
+                                                <input type="date" id="medicionDateTo" class="form-control compact">
+                                                <button class="btn btn-primary compact" id="loadMediciones">
                                                     <i class="fas fa-search"></i>
-                                                    Buscar Mediciones
+                                                    Buscar
                                                 </button>
-                                            </div>
-                                            
-                                            <div class="actions-row">
-                                                <button class="btn btn-danger" id="deleteMediciones">
+                                                <button class="btn btn-danger compact" id="deleteMediciones">
                                                     <i class="fas fa-trash"></i>
-                                                    Eliminar Seleccionadas
+                                                    Eliminar
                                                 </button>
                                             </div>
                                         </div>
