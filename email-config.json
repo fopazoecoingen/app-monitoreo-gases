@@ -1,8 +1,0 @@
-{
-  "host": "smtp.gmail.com",
-  "port": 587,
-  "secure": false,
-  "user": "tu-email@gmail.com",
-  "pass": "tu-app-password",
-  "from": "tu-email@gmail.com"
-}
