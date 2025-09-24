@@ -152,6 +152,7 @@ class BlobService {
             { header: 'O2 (%)', key: 'o2', width: 10 },
             { header: 'CO (ppm)', key: 'co', width: 12 },
             { header: 'CH4 (%)', key: 'ch4', width: 12 },
+            { header: 'CO2 (%)', key: 'co2', width: 12 },
             { header: 'Tiempo Relativo', key: 'tiempo_relativo', width: 18 },
             { header: 'Evento', key: 'evento', width: 15 },
             { header: 'Fecha Creación', key: 'created_at', width: 20 }
@@ -164,6 +165,7 @@ class BlobService {
                 o2: reading.o2 || '',
                 co: reading.co || '',
                 ch4: reading.ch4 || '',
+                co2: reading.co2 || '',
                 tiempo_relativo: reading.tiempo_relativo || '',
                 evento: reading.evento || 'Normal',
                 created_at: reading.created_at || ''

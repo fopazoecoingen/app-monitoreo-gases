@@ -97,6 +97,7 @@ class DatabaseManager {
                     o2 REAL NULL,
                     co REAL NULL,
                     ch4 REAL NULL,
+                    co2 REAL NULL,
                     tiempo_relativo TEXT NOT NULL,
                     evento TEXT DEFAULT 'Normal',
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -125,11 +126,16 @@ class DatabaseManager {
 
                         console.log('Tabla lecturas_detalladas creada exitosamente');
 
-                        // Crear índices para mejorar rendimiento
-                        this.createIndexes()
+                        // Verificar y agregar campo CO2 si no existe
+                        this.addCo2FieldIfNeeded()
                             .then(() => {
-                                console.log('Base de datos inicializada correctamente');
-                                resolve();
+                                // Crear índices para mejorar rendimiento
+                                this.createIndexes()
+                                    .then(() => {
+                                        console.log('Base de datos inicializada correctamente');
+                                        resolve();
+                                    })
+                                    .catch(reject);
                             })
                             .catch(reject);
                     });
@@ -220,6 +226,35 @@ class DatabaseManager {
                         }
                         resolve();
                     });
+                }
+            });
+        });
+    }
+
+    async addCo2FieldIfNeeded() {
+        return new Promise((resolve, reject) => {
+            this.db.all("PRAGMA table_info(lecturas_detalladas)", (err, columns) => {
+                if (err) {
+                    console.error('Error verificando columnas de lecturas_detalladas para CO2:', err.message);
+                    reject(err);
+                    return;
+                }
+                
+                const hasCo2 = columns.some(col => col.name === 'co2');
+                if (!hasCo2) {
+                    console.log('Migrando tabla lecturas_detalladas para agregar campo CO2...');
+                    this.db.run('ALTER TABLE lecturas_detalladas ADD COLUMN co2 REAL NULL', (err) => {
+                        if (err) {
+                            console.error('Error ejecutando migración CO2:', err.message);
+                            reject(err);
+                        } else {
+                            console.log('Campo CO2 agregado exitosamente a lecturas_detalladas');
+                            resolve();
+                        }
+                    });
+                } else {
+                    console.log('Tabla lecturas_detalladas ya tiene campo CO2');
+                    resolve();
                 }
             });
         });
@@ -318,8 +353,8 @@ class DatabaseManager {
             }
 
             const query = `
-                INSERT INTO lecturas_detalladas (medicion_id, o2, co, ch4, tiempo_relativo, evento, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO lecturas_detalladas (medicion_id, o2, co, ch4, co2, tiempo_relativo, evento, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
             // Usar la misma fecha/hora que la medición principal
@@ -333,6 +368,7 @@ class DatabaseManager {
                 data.o2 !== undefined && data.o2 !== null ? data.o2 : null,
                 data.co !== undefined && data.co !== null ? data.co : null,
                 data.ch4 !== undefined && data.ch4 !== null ? data.ch4 : null,
+                data.co2 !== undefined && data.co2 !== null ? data.co2 : null,
                 tiempoRelativo,
                 evento,
                 created_at
@@ -404,6 +440,7 @@ class DatabaseManager {
                     o2,
                     co,
                     ch4,
+                    co2,
                     tiempo_relativo,
                     evento,
                     created_at

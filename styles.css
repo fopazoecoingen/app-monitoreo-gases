@@ -565,13 +565,13 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 5px;
-    font-size: 12px;
+    gap: 3px;
+    font-size: 9px;
     color: #b0b0b0;
 }
 
 .gas-status i {
-    font-size: 10px;
+    font-size: 8px;
 }
 
 /* Last Reading */
@@ -2315,6 +2315,7 @@ body {
 .o2-icon { color: #4fc3f7; }
 .co-icon { color: #ff7043; }
 .ch4-icon { color: #66bb6a; }
+.co2-icon { color: #8bc34a; }
 
 .checkbox-label {
     display: flex;
@@ -2381,6 +2382,10 @@ body {
 
 .ch4-icon {
     color: #4caf50;
+}
+
+.co2-icon {
+    color: #8bc34a;
 }
 
 .gas-selection-info {
@@ -2504,19 +2509,20 @@ body {
 }
 
 .monitoring-gas-cards {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
 }
 
 .monitoring-gas-card {
     background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
     border: 1px solid #4a4a4a;
     border-radius: 6px;
-    padding: 12px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    padding: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     transition: transform 0.3s ease;
-    min-height: 60px; /* Much smaller height */
+    min-height: 50px;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
 }
@@ -2537,34 +2543,39 @@ body {
     border-left: 4px solid #4caf50;
 }
 
+.monitoring-gas-card.carbon-dioxide {
+    border-left: 4px solid #8bc34a;
+}
+
 .monitoring-gas-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .monitoring-gas-title {
-    font-size: 12px;
+    font-size: 10px;
     font-weight: 600;
     color: #ffffff;
+    line-height: 1.2;
 }
 
 .monitoring-gas-unit {
     background: rgba(255, 255, 255, 0.1);
-    padding: 2px 6px;
+    padding: 1px 4px;
     border-radius: 3px;
-    font-size: 10px;
+    font-size: 8px;
     font-weight: 500;
     color: #aaa;
 }
 
 .monitoring-gas-value {
-    font-size: 18px;
+    font-size: 14px;
     font-weight: 700;
     color: #00e676;
     text-align: center;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     min-height: 24px; /* Much smaller height */
     display: flex;
     align-items: center;
@@ -2629,17 +2640,18 @@ body {
     }
     
     .monitoring-gas-cards {
-        gap: 8px;
+        gap: 6px;
+        grid-template-columns: repeat(2, 1fr);
     }
     
     .monitoring-gas-card {
-        padding: 12px;
-        min-height: 70px;
+        padding: 8px;
+        min-height: 55px;
     }
     
     .monitoring-gas-value {
-        font-size: 20px;
-        min-height: 28px;
+        font-size: 16px;
+        min-height: 22px;
     }
     
     .monitoring-charts {

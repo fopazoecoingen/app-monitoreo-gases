@@ -34,7 +34,7 @@ const EVENT_COLORS = {
 // Configuración de la interfaz
 const UI_CONFIG = {
     maxDataPoints: 50,
-    readingInterval: 5000, // ms
+    readingInterval: 60000, // ms - 1 minuto
     resetEventTimeout: 3000, // ms
     toastDuration: 3000 // ms
 };

@@ -31,6 +31,7 @@ const settingsSelectPathBtn = document.getElementById('settingsSelectPathBtn');
 const monitorO2MainCheckbox = document.getElementById('monitorO2Main');
 const monitorCOMainCheckbox = document.getElementById('monitorCOMain');
 const monitorCH4MainCheckbox = document.getElementById('monitorCH4Main');
+const monitorCO2MainCheckbox = document.getElementById('monitorCO2Main');
 const saveSettingsBtn = document.getElementById('saveSettings');
 
 // Monitoring view elements
@@ -87,6 +88,7 @@ let monitoringCharts = {};
 let o2Chart = null;
 let coChart = null;
 let ch4Chart = null;
+let co2Chart = null;
 
 // Chart data
 const maxDataPoints = 50; // Máximo de puntos en el gráfico
@@ -94,7 +96,8 @@ let chartData = {
     labels: [],
     o2: [],
     co: [],
-    ch4: []
+    ch4: [],
+    co2: []
 };
 
 // Initialize app
@@ -157,6 +160,7 @@ function setupEventListeners() {
     if (monitorO2MainCheckbox) monitorO2MainCheckbox.addEventListener('change', handleGasSelectionChange);
     if (monitorCOMainCheckbox) monitorCOMainCheckbox.addEventListener('change', handleGasSelectionChange);
     if (monitorCH4MainCheckbox) monitorCH4MainCheckbox.addEventListener('change', handleGasSelectionChange);
+    if (monitorCO2MainCheckbox) monitorCO2MainCheckbox.addEventListener('change', handleGasSelectionChange);
     
     // Monitoring view handlers
     if (stopMonitoringBtn) stopMonitoringBtn.addEventListener('click', stopMonitoringFromView);
@@ -327,6 +331,7 @@ function updateGasValues(data) {
         o2: data.o2,
         co: data.co,
         ch4: data.ch4,
+        co2: data.co2,
         fecha: data.fecha,
         hora: data.hora,
         eventType: data.eventType
@@ -413,6 +418,49 @@ function updateReadingCards(data) {
         console.log('✅ CH4 actualizado:', data.ch4.toFixed(2));
     } else {
         console.log('❌ CH4 no actualizado - elemento:', !!ch4ValueElement, 'dato:', data.ch4);
+    }
+    
+    // Actualizar CO2
+    const co2ValueElement = document.getElementById('co2Value');
+    const co2TimeElement = document.getElementById('co2Time');
+    const co2Card = document.getElementById('co2ReadingCard');
+    
+    console.log('🔍 Elementos CO2 encontrados:', {
+        value: !!co2ValueElement,
+        time: !!co2TimeElement,
+        card: !!co2Card,
+        dataCO2: data.co2
+    });
+    
+    if (co2ValueElement && data.co2 !== undefined) {
+        co2ValueElement.textContent = data.co2.toFixed(2);
+        if (co2TimeElement) co2TimeElement.textContent = timeString;
+        if (co2Card) co2Card.classList.add('co2-card');
+        console.log('✅ CO2 actualizado:', data.co2.toFixed(2));
+    } else {
+        console.log('❌ CO2 no actualizado - elemento:', !!co2ValueElement, 'dato:', data.co2);
+    }
+}
+
+function updateCO2Value(data, timeString) {
+    const co2ValueElement = document.getElementById('co2Value');
+    const co2TimeElement = document.getElementById('co2Time');
+    const co2Card = document.getElementById('co2ReadingCard');
+    
+    console.log('🔍 Elementos CO2 encontrados:', {
+        value: !!co2ValueElement,
+        time: !!co2TimeElement,
+        card: !!co2Card,
+        dataCO2: data.co2
+    });
+    
+    if (co2ValueElement && data.co2 !== undefined) {
+        co2ValueElement.textContent = data.co2.toFixed(2);
+        if (co2TimeElement) co2TimeElement.textContent = timeString;
+        if (co2Card) co2Card.classList.add('co2-card');
+        console.log('✅ CO2 actualizado:', data.co2.toFixed(2));
+    } else {
+        console.log('❌ CO2 no actualizado - elemento:', !!co2ValueElement, 'dato:', data.co2);
     }
 }
 
@@ -856,6 +904,38 @@ function initializeCharts() {
         }
     });
 
+    // Gráfico CO₂
+    const co2Ctx = document.getElementById('co2Chart').getContext('2d');
+    co2Chart = new Chart(co2Ctx, {
+        type: 'line',
+        data: {
+            labels: chartData.labels,
+            datasets: [{
+                label: 'CO₂ (%)',
+                data: chartData.co2,
+                borderColor: '#8bc34a',
+                backgroundColor: 'rgba(139, 195, 74, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            ...commonOptions,
+            scales: {
+                ...commonOptions.scales,
+                y: {
+                    ...commonOptions.scales.y,
+                    title: {
+                        display: true,
+                        text: '%',
+                        color: '#888'
+                    }
+                }
+            }
+        }
+    });
+
 }
 
 function updateCharts(data) {
@@ -871,6 +951,7 @@ function updateCharts(data) {
     if (data.o2 !== undefined) chartData.o2.push(data.o2);
     if (data.co !== undefined) chartData.co.push(data.co);
     if (data.ch4 !== undefined) chartData.ch4.push(data.ch4);
+    if (data.co2 !== undefined) chartData.co2.push(data.co2);
 
     // Mantener solo los últimos maxDataPoints puntos
     if (chartData.labels.length > maxDataPoints) {
@@ -878,6 +959,7 @@ function updateCharts(data) {
         chartData.o2.shift();
         chartData.co.shift();
         chartData.ch4.shift();
+        chartData.co2.shift();
     }
 
     // Actualizar gráficos individuales
@@ -897,6 +979,12 @@ function updateCharts(data) {
         ch4Chart.data.labels = chartData.labels;
         ch4Chart.data.datasets[0].data = chartData.ch4;
         ch4Chart.update('none');
+    }
+
+    if (co2Chart && data.co2 !== undefined) {
+        co2Chart.data.labels = chartData.labels;
+        co2Chart.data.datasets[0].data = chartData.co2;
+        co2Chart.update('none');
     }
 
 }
@@ -945,11 +1033,12 @@ async function handleGasSelectionChange() {
         const gasConfig = {
             o2: monitorO2MainCheckbox ? monitorO2MainCheckbox.checked : true,
             co: monitorCOMainCheckbox ? monitorCOMainCheckbox.checked : true,
-            ch4: monitorCH4MainCheckbox ? monitorCH4MainCheckbox.checked : true
+            ch4: monitorCH4MainCheckbox ? monitorCH4MainCheckbox.checked : true,
+            co2: monitorCO2MainCheckbox ? monitorCO2MainCheckbox.checked : true
         };
         
         // Validar que al menos un gas esté seleccionado
-        if (!gasConfig.o2 && !gasConfig.co && !gasConfig.ch4) {
+        if (!gasConfig.o2 && !gasConfig.co && !gasConfig.ch4 && !gasConfig.co2) {
             showToast('warning', 'Debe seleccionar al menos un gas para monitorear');
             // Revertir el último cambio
             event.target.checked = true;
@@ -1055,6 +1144,16 @@ function createMonitoringGasCards(gasConfig) {
         });
     }
     
+    if (gasConfig.co2) {
+        gasCards.push({
+            id: 'monitoring-co2',
+            title: 'CO₂ - Dióxido de Carbono',
+            unit: '%',
+            class: 'carbon-dioxide',
+            color: '#8bc34a'
+        });
+    }
+    
     gasCards.forEach(gas => {
         const gasCard = document.createElement('div');
         gasCard.className = `monitoring-gas-card ${gas.class}`;
@@ -1154,6 +1253,18 @@ function createMonitoringCharts(gasConfig) {
                 tension: 0.4
             });
         }
+        
+        if (gasConfig.co2) {
+            monitoringCharts.combined.data.datasets.push({
+                label: 'CO₂ (%)',
+                data: [],
+                borderColor: '#8bc34a',
+                backgroundColor: 'rgba(139, 195, 74, 0.1)',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4
+            });
+        }
     }
 }
 
@@ -1192,6 +1303,11 @@ function updateMonitoringView(data) {
         if (ch4ValueElement) ch4ValueElement.textContent = data.ch4.toFixed(3);
     }
     
+    if (data.co2 !== undefined) {
+        const co2ValueElement = document.getElementById('monitoring-co2-value');
+        if (co2ValueElement) co2ValueElement.textContent = data.co2.toFixed(3);
+    }
+    
     // Update monitoring info
     monitoringDataCount++;
     if (monitoringDataCountElement) {
@@ -1224,6 +1340,10 @@ function updateMonitoringView(data) {
         }
         if (data.ch4 !== undefined) {
             monitoringCharts.combined.data.datasets[datasetIndex].data.push(data.ch4);
+            datasetIndex++;
+        }
+        if (data.co2 !== undefined) {
+            monitoringCharts.combined.data.datasets[datasetIndex].data.push(data.co2);
         }
         
         // Keep only last 30 points

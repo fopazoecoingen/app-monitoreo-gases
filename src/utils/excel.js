@@ -28,7 +28,7 @@ class ExcelManager {
 
     // Configurar encabezados
     setupHeaders() {
-        this.worksheet.addRow(['Fecha', 'Hora', 'O₂ (%Vol)', 'CO (ppm)', 'CH₄ (ppm)', 'Evento']);
+        this.worksheet.addRow(['Fecha', 'Hora', 'O₂ (%Vol)', 'CO (ppm)', 'CH₄ (ppm)', 'CO₂ (%)', 'Evento']);
         
         // Formatear encabezados
         const headerRow = this.worksheet.getRow(1);
@@ -71,7 +71,7 @@ class ExcelManager {
     }
 
     // Guardar datos en Excel
-    async saveData(o2, co, ch4, eventType = 'Normal') {
+    async saveData(o2, co, ch4, co2, eventType = 'Normal') {
         try {
             const now = new Date();
             const fecha = now.toISOString().split('T')[0];
@@ -84,6 +84,7 @@ class ExcelManager {
                 Math.round(o2 * 1000) / 1000, 
                 Math.round(co * 1000) / 1000, 
                 Math.round(ch4 * 1000) / 1000,
+                Math.round(co2 * 1000) / 1000,
                 eventType
             ]);
 

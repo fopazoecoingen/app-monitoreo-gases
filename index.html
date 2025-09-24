@@ -178,6 +178,14 @@
                                                 CH₄ - Metano (ppm)
                                             </label>
                                         </div>
+                                        <div class="gas-option">
+                                            <label class="checkbox-label">
+                                                <input type="checkbox" id="monitorCO2Main" class="gas-checkbox" checked>
+                                                <span class="checkmark"></span>
+                                                <i class="fas fa-leaf gas-icon co2-icon"></i>
+                                                CO₂ - Dióxido de Carbono (%)
+                                            </label>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -214,6 +222,16 @@
                                         <div class="reading-value" id="ch4Value">--</div>
                                         <div class="reading-unit">ppm</div>
                                         <div class="reading-time" id="ch4Time">--:--:--</div>
+                                    </div>
+                                    
+                                    <div class="reading-card" id="co2ReadingCard">
+                                        <div class="reading-header">
+                                            <i class="fas fa-leaf reading-icon co2-icon"></i>
+                                            <span class="reading-label">CO₂ - Dióxido de Carbono</span>
+                                        </div>
+                                        <div class="reading-value" id="co2Value">--</div>
+                                        <div class="reading-unit">%</div>
+                                        <div class="reading-time" id="co2Time">--:--:--</div>
                                     </div>
                                 </div>
                             </div>
@@ -253,6 +271,16 @@
                                             </div>
                                             <div class="chart-wrapper">
                                                 <canvas id="ch4Chart"></canvas>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="chart-section">
+                                            <div class="chart-header">
+                                                <h3>CO₂ - Dióxido de Carbono</h3>
+                                                <span class="unit">%</span>
+                                            </div>
+                                            <div class="chart-wrapper">
+                                                <canvas id="co2Chart"></canvas>
                                             </div>
                                         </div>
                                         

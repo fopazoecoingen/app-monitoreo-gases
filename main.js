@@ -24,6 +24,7 @@ const DEV_EXCEL_FILE = path.join(__dirname, 'lecturas_ch4_co_o2.xlsx');
 const ADDR_O2 = 4;   // 40005 - 40001
 const ADDR_CO = 7;   // Confirmado
 const ADDR_CH4 = 11; // Confirmado
+const ADDR_CO2 = 9;  // Registro 9 para CO2
 
 let mainWindow;
 let port = null;
@@ -39,7 +40,8 @@ let measurementData = []; // Datos acumulados durante la sesión
 let selectedGases = {
     o2: true,
     co: true,
-    ch4: true
+    ch4: true,
+    co2: true
 };
 
 // Función para acumular datos durante la sesión de medición
@@ -257,6 +259,14 @@ async function readAnalyzerData() {
             const ch4Registers = await readHoldingRegisters(ADDR_CH4, 2);
             data.ch4 = decodeFloat32(ch4Registers.data);
             console.log(`CH₄ leído: ${data.ch4}`);
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
+        
+        if (selectedGases.co2) {
+            console.log('Leyendo CO₂...');
+            const co2Registers = await readHoldingRegisters(ADDR_CO2, 2);
+            data.co2 = decodeFloat32(co2Registers.data);
+            console.log(`CO₂ leído: ${data.co2}`);
         }
 
         console.log('Datos del analizador leídos exitosamente:', data);
@@ -292,6 +302,7 @@ async function saveToExcel(data, eventType = 'Normal') {
             if (selectedGases.o2) headers.push('O₂ (%Vol)');
             if (selectedGases.co) headers.push('CO (ppm)');
             if (selectedGases.ch4) headers.push('CH₄ (ppm)');
+            if (selectedGases.co2) headers.push('CO₂ (%)');
             headers.push('Evento');
             
             worksheet.addRow(headers);
@@ -312,6 +323,7 @@ async function saveToExcel(data, eventType = 'Normal') {
         if (selectedGases.o2) rowData.push(Math.round(data.o2 * 1000) / 1000);
         if (selectedGases.co) rowData.push(Math.round(data.co * 1000) / 1000);
         if (selectedGases.ch4) rowData.push(Math.round(data.ch4 * 1000) / 1000);
+        if (selectedGases.co2) rowData.push(Math.round(data.co2 * 1000) / 1000);
         rowData.push(eventType);
         
         const newRow = worksheet.addRow(rowData);
@@ -626,12 +638,13 @@ ipcMain.handle('start-reading', async () => {
             mainWindow.webContents.send('data-error', error.message);
         }
         
-        setTimeout(readLoop, 5000);
+        setTimeout(readLoop, 60000); // Intervalo de lectura: 60 segundos (1 minuto)
     };
     
     readLoop();
     
-    return { success: true, message: 'Iniciando lectura de datos' };
+    console.log('⏰ Intervalo de lectura configurado: 60 segundos (1 minuto)');
+    return { success: true, message: 'Iniciando lectura de datos cada minuto' };
 });
 
 ipcMain.handle('stop-reading', async () => {
@@ -1246,9 +1259,9 @@ ipcMain.handle('check-internet-for-indicator', async () => {
         const internetChecker = new InternetChecker();
         
         const result = await internetChecker.checkConnection();
-        
-        return {
-            success: true,
+
+        return { 
+            success: true, 
             connected: result.connected,
             latency: result.latency || 0,
             error: result.connected ? null : (result.error || 'Sin conexión a internet')

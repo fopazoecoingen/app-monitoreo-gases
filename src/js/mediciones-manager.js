@@ -414,6 +414,7 @@ class MedicionesManager {
                     <td class="col-o2">${lectura.o2 !== null ? lectura.o2.toFixed(2) : 'NULL'}</td>
                     <td class="col-co">${lectura.co !== null ? lectura.co.toFixed(2) : 'NULL'}</td>
                     <td class="col-ch4">${lectura.ch4 !== null ? lectura.ch4.toFixed(2) : 'NULL'}</td>
+                    <td class="col-co2">${lectura.co2 !== null ? lectura.co2.toFixed(2) : 'NULL'}</td>
                     <td class="col-evento">${lectura.evento || 'Normal'}</td>
                 </tr>
             `;
@@ -430,6 +431,7 @@ class MedicionesManager {
                             <th>O₂ (%Vol)</th>
                             <th>CO (ppm)</th>
                             <th>CH₄ (ppm)</th>
+                            <th>CO₂ (%)</th>
                             <th>Evento</th>
                         </tr>
                     </thead>
@@ -552,7 +554,7 @@ class MedicionesManager {
             
             if (lecturasDetalladas.length > 0) {
                 const lecturasData = [
-                    ['#', 'Fecha', 'Hora', 'O2 (%Vol)', 'CO (ppm)', 'CH4 (ppm)', 'Evento']
+                    ['#', 'Fecha', 'Hora', 'O2 (%Vol)', 'CO (ppm)', 'CH4 (ppm)', 'CO2 (%)', 'Evento']
                 ];
                 
                 console.log('📊 Exportando', lecturasDetalladas.length, 'lecturas detalladas');
@@ -567,6 +569,7 @@ class MedicionesManager {
                             o2: lectura.o2,
                             co: lectura.co,
                             ch4: lectura.ch4,
+                            co2: lectura.co2,
                             evento: lectura.evento
                         });
                     }
@@ -578,6 +581,7 @@ class MedicionesManager {
                         lectura.o2 !== null && lectura.o2 !== undefined ? lectura.o2.toFixed(2) : 'NULL',
                         lectura.co !== null && lectura.co !== undefined ? lectura.co.toFixed(2) : 'NULL',
                         lectura.ch4 !== null && lectura.ch4 !== undefined ? lectura.ch4.toFixed(2) : 'NULL',
+                        lectura.co2 !== null && lectura.co2 !== undefined ? lectura.co2.toFixed(2) : 'NULL',
                         lectura.evento || 'Normal'
                     ]);
                 });
