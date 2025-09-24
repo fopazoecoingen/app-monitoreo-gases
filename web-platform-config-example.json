@@ -1,0 +1,9 @@
+{
+  "baseUrl": "https://api.miplataforma.com",
+  "apiKey": "tu-api-key-aqui",
+  "endpoint": "/api/mediciones",
+  "headers": {
+    "X-Source": "ModbusAnalyzer",
+    "X-Version": "1.0"
+  }
+}

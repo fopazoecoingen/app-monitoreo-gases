@@ -35,6 +35,16 @@
                 </div>
             </div>
             <div class="header-right">
+                <!-- Indicador de conexión a internet -->
+                <div class="internet-indicator" id="internetIndicator">
+                    <div class="internet-status" id="internetStatus">
+                        <span class="status-icon" id="statusIcon">🔄</span>
+                        <span class="status-text" id="statusTextInternet">Verificando...</span>
+                        <span class="status-latency" id="statusLatency"></span>
+                    </div>
+                </div>
+                    
+
                 <div class="window-controls">
                     <button class="window-btn minimize"><i class="fas fa-minus"></i></button>
                     <button class="window-btn maximize"><i class="fas fa-square"></i></button>
@@ -464,18 +474,6 @@
                                             </div>
                                             
                                             <div class="actions-row">
-                                                <button class="btn btn-success" id="exportMedicionesExcel">
-                                                    <i class="fas fa-file-excel"></i>
-                                                    Exportar a Excel
-                                                </button>
-                                                <button class="btn btn-info" id="exportMedicionesCSV">
-                                                    <i class="fas fa-file-csv"></i>
-                                                    Exportar a CSV
-                                                </button>
-                                                <button class="btn btn-warning" id="sendMedicionesEmail">
-                                                    <i class="fas fa-envelope"></i>
-                                                    Enviar por Email
-                                                </button>
                                                 <button class="btn btn-danger" id="deleteMediciones">
                                                     <i class="fas fa-trash"></i>
                                                     Eliminar Seleccionadas

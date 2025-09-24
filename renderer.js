@@ -1335,3 +1335,100 @@ window.addEventListener('error', (event) => {
 window.addEventListener('unhandledrejection', (event) => {
     addLogEntry('error', `Error no manejado: ${event.reason}`);
 });
+
+// ==================== INDICADOR DE CONEXIÓN A INTERNET ====================
+
+class InternetIndicator {
+    constructor() {
+        this.statusElement = document.getElementById('internetStatus');
+        this.iconElement = document.getElementById('statusIcon');
+        this.textElement = document.getElementById('statusTextInternet');
+        this.latencyElement = document.getElementById('statusLatency');
+        this.checkInterval = null;
+        this.isChecking = false;
+        
+        // Verificar conexión inicial
+        this.checkConnection();
+        
+        // Verificar cada 30 segundos
+        this.startPeriodicCheck();
+    }
+
+    async checkConnection() {
+        if (this.isChecking) return;
+        
+        this.isChecking = true;
+        this.updateStatus('checking', '🔄', 'Verificando...', '');
+
+        try {
+            const result = await window.electronAPI.checkInternetForIndicator();
+            
+            if (result.success) {
+                if (result.connected) {
+                    const latency = result.latency ? `${Math.round(result.latency)}ms` : '';
+                    this.updateStatus('connected', '🌐', 'Conectado', latency);
+                } else {
+                    this.updateStatus('disconnected', '❌', 'Sin conexión', '');
+                }
+            } else {
+                this.updateStatus('disconnected', '❌', 'Error', '');
+            }
+        } catch (error) {
+            console.error('Error verificando conexión:', error);
+            this.updateStatus('disconnected', '❌', 'Error', '');
+        } finally {
+            this.isChecking = false;
+        }
+    }
+
+    updateStatus(status, icon, text, latency) {
+        if (!this.statusElement) return;
+
+        // Remover clases anteriores
+        this.statusElement.className = 'internet-status';
+        this.iconElement.className = 'status-icon';
+        
+        // Agregar clase correspondiente
+        this.statusElement.classList.add(status);
+        if (status === 'checking') {
+            this.iconElement.classList.add('checking');
+        }
+        
+        // Actualizar contenido
+        if (this.iconElement) this.iconElement.textContent = icon;
+        if (this.textElement) this.textElement.textContent = text;
+        if (this.latencyElement) this.latencyElement.textContent = latency;
+    }
+
+    startPeriodicCheck() {
+        // Verificar cada 30 segundos
+        this.checkInterval = setInterval(() => {
+            this.checkConnection();
+        }, 30000);
+    }
+
+    stopPeriodicCheck() {
+        if (this.checkInterval) {
+            clearInterval(this.checkInterval);
+            this.checkInterval = null;
+        }
+    }
+
+    // Método público para verificación manual
+    forceCheck() {
+        this.checkConnection();
+    }
+}
+
+// Inicializar indicador de internet cuando se carga la página
+let internetIndicator = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Inicializar después de un pequeño delay para asegurar que todos los elementos estén listos
+    setTimeout(() => {
+        internetIndicator = new InternetIndicator();
+    }, 1000);
+});
+
+// Exponer globalmente para acceso manual
+window.internetIndicator = internetIndicator;

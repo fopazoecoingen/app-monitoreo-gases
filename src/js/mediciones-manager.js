@@ -76,9 +76,6 @@ class MedicionesManager {
         });
 
         // Acciones
-        document.getElementById('exportMedicionesExcel')?.addEventListener('click', () => this.exportToExcel());
-        document.getElementById('exportMedicionesCSV')?.addEventListener('click', () => this.exportToCSV());
-        document.getElementById('sendMedicionesEmail')?.addEventListener('click', () => this.openEmailModal());
         document.getElementById('deleteMediciones')?.addEventListener('click', () => this.deleteSelectedMediciones());
 
         // Paginación
@@ -93,9 +90,7 @@ class MedicionesManager {
         // Modales
         document.getElementById('closeMedicionDetail')?.addEventListener('click', () => this.closeModal('medicionDetailModal'));
         document.getElementById('closeMedicionDetailBtn')?.addEventListener('click', () => this.closeModal('medicionDetailModal'));
-        document.getElementById('closeEmailModal')?.addEventListener('click', () => this.closeModal('emailModal'));
-        document.getElementById('closeEmailModalBtn')?.addEventListener('click', () => this.closeModal('emailModal'));
-        document.getElementById('sendEmailBtn')?.addEventListener('click', () => this.sendEmail());
+        // Event listeners de email modal removidos
 
         // Cerrar modales al hacer click fuera
         document.addEventListener('click', (e) => {
@@ -229,6 +224,12 @@ class MedicionesManager {
                                     onclick="medicionesManager.viewMedicionDetail(${medicion.medicion_id})"
                                     title="Ver detalle (incluye observaciones)">
                                 <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="action-btn send-platform" 
+                                    onclick="medicionesManager.sendToPlatform(${medicion.medicion_id})"
+                                    title="Enviar a plataforma"
+                                    ${medicion.enviado_plataforma ? 'disabled' : ''}>
+                                ⬆️
                             </button>
                         </div>
                     </td>
@@ -520,126 +521,11 @@ class MedicionesManager {
         }
     }
 
-    async exportToExcel() {
-        try {
-            this.showLoading(true);
-            
-            const result = await window.electronAPI.exportMedicionesExcel(
-                this.filters.startDate,
-                this.filters.endDate
-            );
+    // Método exportToExcel removido
 
-            if (result.success) {
-                this.showSuccess(`Archivo Excel exportado: ${result.fileName}`);
-                console.log('Archivo guardado en:', result.filePath);
-            } else {
-                this.showError('Error exportando: ' + result.error);
-            }
-        } catch (error) {
-            this.showError('Error: ' + error.message);
-        } finally {
-            this.showLoading(false);
-        }
-    }
+    // Método exportToCSV removido
 
-    async exportToCSV() {
-        try {
-            this.showLoading(true);
-            
-            const result = await window.electronAPI.exportDataToCSV(
-                this.filters.startDate,
-                this.filters.endDate
-            );
-
-            if (result.success) {
-                // Crear libro de Excel
-                const workbook = XLSX.utils.book_new();
-                
-                // Crear hoja con datos de las mediciones
-                const lines = result.data.split('\n');
-                const worksheetData = [];
-                
-                lines.forEach((line, index) => {
-                    if (line.trim()) {
-                        const values = line.split(',');
-                        // Limpiar comillas de los valores
-                        const cleanValues = values.map(val => val.replace(/"/g, ''));
-                        worksheetData.push(cleanValues);
-                    }
-                });
-                
-                const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-                
-                // Agregar hoja al libro
-                XLSX.utils.book_append_sheet(workbook, worksheet, 'Mediciones');
-                
-                // Generar archivo Excel
-                const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-                const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                
-                // Descargar archivo
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `mediciones_${new Date().toISOString().split('T')[0]}.xlsx`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-                
-                this.showSuccess('Archivo Excel descargado exitosamente');
-            } else {
-                this.showError('Error exportando Excel: ' + result.error);
-            }
-        } catch (error) {
-            this.showError('Error: ' + error.message);
-        } finally {
-            this.showLoading(false);
-        }
-    }
-
-    openEmailModal() {
-        // Configurar fecha por defecto
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('emailSubject').value = `Reporte de Mediciones de Gases - ${today}`;
-        
-        this.showModal('emailModal');
-    }
-
-    async sendEmail() {
-        try {
-            const emailData = {
-                to: document.getElementById('emailTo').value,
-                subject: document.getElementById('emailSubject').value,
-                body: document.getElementById('emailBody').value,
-                format: document.getElementById('emailFormat').value
-            };
-
-            if (!emailData.to) {
-                this.showError('Por favor ingresa un destinatario');
-                return;
-            }
-
-            this.showLoading(true);
-            
-            const result = await window.electronAPI.sendMedicionesEmail(
-                emailData,
-                this.filters.startDate,
-                this.filters.endDate
-            );
-
-            if (result.success) {
-                this.showSuccess('Email enviado exitosamente');
-                this.closeModal('emailModal');
-            } else {
-                this.showError('Error enviando email: ' + result.error);
-            }
-        } catch (error) {
-            this.showError('Error: ' + error.message);
-        } finally {
-            this.showLoading(false);
-        }
-    }
+    // Métodos openEmailModal y sendEmail removidos
 
     async exportSingleMedicion(medicion) {
         try {
@@ -790,6 +676,30 @@ class MedicionesManager {
             
         } catch (error) {
             this.showError('Error eliminando mediciones: ' + error.message);
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    async sendToPlatform(medicionId) {
+        try {
+            console.log(`📦 Enviando medición ${medicionId} a plataforma...`);
+            
+            this.showLoading(true);
+            
+            const result = await window.electronAPI.sendMedicionToPlatformUI(medicionId, 'excel');
+
+            if (result.success) {
+                this.showSuccess(`Medición ${medicionId} enviada exitosamente a la plataforma`);
+                console.log(`✅ Medición enviada: ${result.blobName}`);
+                
+                // Actualizar la lista para reflejar el cambio de estado
+                this.loadMediciones();
+            } else {
+                this.showError(`Error enviando medición: ${result.error}`);
+            }
+        } catch (error) {
+            this.showError('Error: ' + error.message);
         } finally {
             this.showLoading(false);
         }

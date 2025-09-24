@@ -5,6 +5,9 @@ const ExcelJS = require('exceljs');
 const fs = require('fs');
 const os = require('os');
 const DatabaseManager = require('./src/utils/database');
+const EmailSender = require('./src/utils/email-sender');
+const WebSender = require('./src/utils/web-sender');
+const BlobSender = require('./src/utils/blob-sender');
 
 // Configuración
 const EXCEL_DIR = path.join(os.homedir(), 'Documents', 'ModbusAnalyzer');
@@ -29,6 +32,9 @@ let port = null;
 let isReading = false;
 let currentEventType = 'Normal';
 let databaseManager = null;
+let emailSender = null;
+let webSender = null;
+let blobSender = null;
 let currentMeasurementId = null; // ID de la medición actual
 let measurementStartTime = null; // Tiempo de inicio de la medición actual
 let measurementData = []; // Datos acumulados durante la sesión
@@ -371,6 +377,32 @@ async function initializeDatabase() {
         await databaseManager.connect();
         await databaseManager.initialize();
         console.log('Base de datos SQLite inicializada correctamente');
+        
+        // Inicializar servicio de correos
+        emailSender = new EmailSender();
+        console.log('Servicio de correos inicializado');
+        
+        // Inicializar servicio de plataforma web
+        webSender = new WebSender();
+        console.log('Servicio de plataforma web inicializado');
+        
+        // Inicializar servicio de blobs con autenticación automática
+        blobSender = new BlobSender();
+        
+        // Configurar blob service con autenticación automática
+        try {
+            const blobConfig = {
+                baseUrl: 'https://localhost:5001',
+                endpoint: '/api/Storage/uploadExcelMedicionesSoftware',
+                apiKey: 'dummy-token', // No se usa realmente, se obtiene dinámicamente
+                containerName: 'mediciones'
+            };
+            
+            await blobSender.configure(blobConfig);
+            console.log('✅ Servicio de blobs configurado con autenticación automática');
+        } catch (error) {
+            console.error('❌ Error configurando servicio de blobs:', error.message);
+        }
     } catch (error) {
         console.error('Error inicializando base de datos:', error);
     }
@@ -418,6 +450,10 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
+        // Limpiar recursos de autenticación antes de cerrar
+        if (blobSender && blobSender.authService) {
+            blobSender.authService.cleanup();
+        }
         app.quit();
     }
 });
@@ -426,6 +462,23 @@ app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();
     }
+});
+
+// Limpiar recursos cuando la aplicación se cierre inesperadamente
+process.on('SIGINT', () => {
+    console.log('🛑 Cerrando aplicación...');
+    if (blobSender && blobSender.authService) {
+        blobSender.authService.cleanup();
+    }
+    process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+    console.log('🛑 Cerrando aplicación...');
+    if (blobSender && blobSender.authService) {
+        blobSender.authService.cleanup();
+    }
+    process.exit(0);
 });
 
 // IPC Handlers
@@ -1017,107 +1070,553 @@ ipcMain.handle('export-mediciones-excel', async (event, startDate = null, endDat
 });
 
 // Enviar mediciones por email
-ipcMain.handle('send-mediciones-email', async (event, emailData, startDate = null, endDate = null) => {
+ipcMain.handle('send-mediciones-email', async (event, emailData, startDate = null, endDate = null, medicionId = null) => {
     try {
+        if (!emailSender) {
+            return { success: false, error: 'Servicio de correos no inicializado' };
+        }
+
+        console.log('📧 Iniciando envío de correo...');
+        console.log('Para:', emailData.to);
+        console.log('Formato:', emailData.format);
+        console.log('Adjunto Excel:', emailData.includeExcel ? 'Sí' : 'No');
+        
+        let result;
+
+        if (medicionId) {
+            // Enviar medición específica
+            console.log(`Medición específica: ID ${medicionId}`);
+            result = await emailSender.sendMeasurementReportWithAttachment(
+                medicionId, 
+                emailData.to, 
+                emailData.includeExcel ? emailData.format || 'excel' : null
+            );
+        } else if (startDate && endDate) {
+            // Enviar reportes por rango de fechas
+            console.log(`Rango de fechas: ${startDate} a ${endDate}`);
+            result = await emailSender.sendReportsByDateRangeWithAttachment(
+                emailData.to, 
+                startDate, 
+                endDate, 
+                emailData.includeExcel ? emailData.format || 'excel' : null
+            );
+        } else {
+            // Enviar último reporte
+            console.log('Última medición');
+            result = await emailSender.sendLatestMeasurementReport(emailData.to);
+        }
+
+        if (result.success) {
+            console.log('✅ Correo enviado exitosamente');
+            return {
+                success: true,
+                message: 'Correo enviado exitosamente',
+                messageId: result.messageId,
+                medicionId: result.medicionId || medicionId,
+                sent: result.sent,
+                total: result.total,
+                attachmentInfo: emailData.includeExcel ? `Archivo ${emailData.format || 'Excel'} adjunto` : 'Sin adjuntos'
+            };
+        } else {
+            console.log('❌ Error enviando correo:', result.error);
+            return {
+                success: false,
+                error: result.error
+            };
+        }
+
+    } catch (error) {
+        console.error('❌ Error enviando email:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Verificar conexión a internet
+ipcMain.handle('check-internet-connection', async () => {
+    try {
+        if (!emailSender) {
+            return { success: false, error: 'Servicio de correos no inicializado' };
+        }
+
+        const internetChecker = new (require('./src/utils/internet.js'))();
+        const result = await internetChecker.checkConnection();
+        
+        return {
+            success: true,
+            connected: result.connected,
+            latency: result.latency,
+            error: result.error
+        };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Verificar estado del servicio de correos
+ipcMain.handle('check-email-service-status', async () => {
+    try {
+        if (!emailSender) {
+            return { success: false, error: 'Servicio de correos no inicializado' };
+        }
+
+        const status = await emailSender.checkServiceStatus();
+        return {
+            success: true,
+            ...status
+        };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Crear configuración de correo de ejemplo
+ipcMain.handle('create-email-config', async () => {
+    try {
+        if (!emailSender) {
+            emailSender = new (require('./src/utils/email-sender.js'))();
+        }
+
+        const result = await emailSender.createExampleConfig();
+        return result;
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Enviar medición específica al laboratorio
+ipcMain.handle('send-medicion-to-lab', async (event, medicionId, labEmail, includeExcel = true) => {
+    try {
+        if (!emailSender) {
+            return { success: false, error: 'Servicio de correos no inicializado' };
+        }
+
+        console.log(`📧 Enviando medición ${medicionId} al laboratorio: ${labEmail}`);
+        console.log(`📎 Incluir Excel: ${includeExcel ? 'Sí' : 'No'}`);
+
+        // Verificar que la medición existe
         if (!databaseManager || !databaseManager.isDatabaseConnected()) {
             return { success: false, error: 'Base de datos no conectada' };
         }
 
-        // Obtener mediciones
-        const mediciones = startDate && endDate 
-            ? await databaseManager.getReadingsByDateRange(startDate, endDate)
-            : await databaseManager.getAllReadings();
-
-        if (mediciones.length === 0) {
-            return { success: false, error: 'No hay mediciones para enviar' };
+        const readingsResult = await databaseManager.getAllReadings();
+        if (!readingsResult.success) {
+            return { success: false, error: 'Error obteniendo mediciones' };
         }
 
-        // Crear archivo temporal
-        const path = require('path');
-        const os = require('os');
-        const tempDir = path.join(os.tmpdir(), 'modbus-analyzer');
-        
-        if (!fs.existsSync(tempDir)) {
-            fs.mkdirSync(tempDir, { recursive: true });
+        const measurement = readingsResult.data.find(m => m.medicion_id === medicionId);
+        if (!measurement) {
+            return { success: false, error: `Medición con ID ${medicionId} no encontrada` };
         }
 
-        const timestamp = new Date().toLocaleString('sv-SE').replace(/[:.]/g, '-').replace(' ', '_');
-        let fileName, filePath, mimeType;
+        // Enviar medición con Excel adjunto
+        const result = await emailSender.sendMeasurementReportWithAttachment(
+            medicionId,
+            labEmail,
+            includeExcel ? 'excel' : null
+        );
 
-        if (emailData.format === 'excel') {
-            fileName = `mediciones_${timestamp}.xlsx`;
-            filePath = path.join(tempDir, fileName);
-            mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-            
-            // Crear archivo Excel (mismo código que export-mediciones-excel)
-            const ExcelJS = require('exceljs');
-            const workbook = new ExcelJS.Workbook();
-            const worksheet = workbook.addWorksheet('Mediciones');
-
-            worksheet.addRow(['ID', 'Fecha', 'Hora', 'Evento', 'Observaciones', 'O₂ (%Vol)', 'CO (ppm)', 'CH₄ (ppm)']);
-
-            mediciones.forEach(medicion => {
-                worksheet.addRow([
-                    medicion.medicion_id,
-                    medicion.fecha,
-                    medicion.hora,
-                    medicion.evento,
-                    medicion.observaciones || '',
-                    medicion.detalles.o2 ? medicion.detalles.o2.valor : '',
-                    medicion.detalles.co ? medicion.detalles.co.valor : '',
-                    medicion.detalles.ch4 ? medicion.detalles.ch4.valor : ''
-                ]);
-            });
-
-            const headerRow = worksheet.getRow(1);
-            headerRow.font = { bold: true };
-            headerRow.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: 'FF2C2C2C' }
+        if (result.success) {
+            console.log(`✅ Medición ${medicionId} enviada exitosamente al laboratorio`);
+            return {
+                success: true,
+                message: `Medición ${medicionId} enviada exitosamente al laboratorio`,
+                messageId: result.messageId,
+                medicionId: medicionId,
+                labEmail: labEmail,
+                attachmentInfo: includeExcel ? 'Archivo Excel adjunto' : 'Sin adjuntos'
             };
-            headerRow.font = { color: { argb: 'FFFFFFFF' }, bold: true };
-
-            worksheet.columns = [
-                { width: 10 }, { width: 12 }, { width: 10 }, { width: 15 },
-                { width: 20 }, { width: 12 }, { width: 12 }, { width: 12 }
-            ];
-
-            await workbook.xlsx.writeFile(filePath);
         } else {
-            fileName = `mediciones_${timestamp}.csv`;
-            filePath = path.join(tempDir, fileName);
-            mimeType = 'text/csv';
-            
-            const csvData = await databaseManager.exportToCSV(startDate, endDate);
-            fs.writeFileSync(filePath, csvData, 'utf8');
+            console.log(`❌ Error enviando medición al laboratorio: ${result.error}`);
+            return {
+                success: false,
+                error: result.error
+            };
         }
 
-        // Simular envío de email (en una implementación real usarías nodemailer o similar)
-        console.log('Enviando email...');
-        console.log('Para:', emailData.to);
-        console.log('Asunto:', emailData.subject);
-        console.log('Archivo:', fileName);
-        console.log('Mensaje:', emailData.body);
+    } catch (error) {
+        console.error('❌ Error enviando medición al laboratorio:', error);
+        return { success: false, error: error.message };
+    }
+});
 
-        // Aquí iría la lógica real de envío de email
-        // Por ahora solo simulamos el envío
-        await new Promise(resolve => setTimeout(resolve, 2000));
+// Enviar medición específica a plataforma web
+ipcMain.handle('send-medicion-to-platform', async (event, medicionId) => {
+    try {
+        if (!webSender) {
+            return { success: false, error: 'Servicio de plataforma web no inicializado' };
+        }
 
-        // Limpiar archivo temporal después de un tiempo
-        setTimeout(() => {
-            if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
-            }
-        }, 30000); // 30 segundos
+        console.log(`🌐 Enviando medición ${medicionId} a plataforma web...`);
 
-        return { 
-            success: true, 
-            message: 'Email enviado exitosamente',
-            fileName: fileName,
-            recordCount: mediciones.length
+        // Verificar que la medición existe
+        if (!databaseManager || !databaseManager.isDatabaseConnected()) {
+            return { success: false, error: 'Base de datos no conectada' };
+        }
+
+        const readingsResult = await databaseManager.getAllReadings();
+        if (!readingsResult.success) {
+            return { success: false, error: 'Error obteniendo mediciones' };
+        }
+
+        const measurement = readingsResult.data.find(m => m.medicion_id === medicionId);
+        if (!measurement) {
+            return { success: false, error: `Medición con ID ${medicionId} no encontrada` };
+        }
+
+        // Enviar medición a plataforma web
+        const result = await webSender.sendMeasurementToPlatform(medicionId);
+
+        if (result.success) {
+            console.log(`✅ Medición ${medicionId} enviada exitosamente a plataforma web`);
+            return {
+                success: true,
+                message: `Medición ${medicionId} enviada exitosamente a plataforma web`,
+                measurementId: result.measurementId,
+                response: result.response
+            };
+        } else {
+            console.log(`❌ Error enviando medición a plataforma web: ${result.error}`);
+            return {
+                success: false,
+                error: result.error
+            };
+        }
+
+    } catch (error) {
+        console.error('❌ Error enviando medición a plataforma web:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Enviar última medición a plataforma web
+ipcMain.handle('send-latest-medicion-to-platform', async () => {
+    try {
+        if (!webSender) {
+            return { success: false, error: 'Servicio de plataforma web no inicializado' };
+        }
+
+        console.log('🌐 Enviando última medición a plataforma web...');
+
+        const result = await webSender.sendLatestMeasurementToPlatform();
+
+        if (result.success) {
+            console.log(`✅ Última medición enviada exitosamente a plataforma web`);
+            return {
+                success: true,
+                message: 'Última medición enviada exitosamente a plataforma web',
+                measurementId: result.measurementId,
+                response: result.response
+            };
+        } else {
+            console.log(`❌ Error enviando última medición: ${result.error}`);
+            return {
+                success: false,
+                error: result.error
+            };
+        }
+
+    } catch (error) {
+        console.error('❌ Error enviando última medición a plataforma web:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Enviar mediciones por rango de fechas a plataforma web
+ipcMain.handle('send-mediciones-range-to-platform', async (event, startDate, endDate) => {
+    try {
+        if (!webSender) {
+            return { success: false, error: 'Servicio de plataforma web no inicializado' };
+        }
+
+        console.log(`🌐 Enviando mediciones del ${startDate} al ${endDate} a plataforma web...`);
+
+        const result = await webSender.sendMeasurementsByDateRangeToPlatform(startDate, endDate);
+
+        if (result.success) {
+            console.log(`✅ ${result.sent} mediciones enviadas exitosamente a plataforma web`);
+            return {
+                success: true,
+                message: `${result.sent} mediciones enviadas exitosamente a plataforma web`,
+                sent: result.sent,
+                total: result.total,
+                response: result.response
+            };
+        } else {
+            console.log(`❌ Error enviando mediciones: ${result.error}`);
+            return {
+                success: false,
+                sent: result.sent,
+                total: result.total,
+                error: result.error
+            };
+        }
+
+    } catch (error) {
+        console.error('❌ Error enviando mediciones a plataforma web:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Verificar estado del servicio de plataforma web
+ipcMain.handle('check-web-platform-status', async () => {
+    try {
+        if (!webSender) {
+            return { success: false, error: 'Servicio de plataforma web no inicializado' };
+        }
+
+        const status = await webSender.checkServiceStatus();
+        return {
+            success: true,
+            ...status
         };
     } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Crear configuración de plataforma web de ejemplo
+ipcMain.handle('create-web-platform-config', async () => {
+    try {
+        if (!webSender) {
+            webSender = new (require('./src/utils/web-sender.js'))();
+        }
+
+        const result = await webSender.createExampleConfig();
+        return result;
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Obtener información de una medición
+ipcMain.handle('get-measurement-info', async (event, medicionId) => {
+    try {
+        if (!webSender) {
+            return { success: false, error: 'Servicio no inicializado' };
+        }
+
+        const result = await webSender.getMeasurementInfo(medicionId);
+        return result;
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// ==================== MANEJADORES PARA BLOBS ====================
+
+// Enviar medición específica como blob
+ipcMain.handle('send-medicion-as-blob', async (event, medicionId, format = 'json') => {
+    try {
+        if (!blobSender) {
+            return { success: false, error: 'Servicio de blobs no inicializado' };
+        }
+
+        console.log(`📦 Enviando medición ${medicionId} como blob (formato: ${format})...`);
+
+        // Verificar que la medición existe
+        if (!databaseManager || !databaseManager.isDatabaseConnected()) {
+            return { success: false, error: 'Base de datos no conectada' };
+        }
+
+        const readingsResult = await databaseManager.getAllReadings();
+        if (!readingsResult.success) {
+            return { success: false, error: 'Error obteniendo mediciones' };
+        }
+
+        const measurement = readingsResult.data.find(m => m.medicion_id === medicionId);
+        if (!measurement) {
+            return { success: false, error: `Medición con ID ${medicionId} no encontrada` };
+        }
+
+        // Enviar medición como blob
+        const result = await blobSender.sendMeasurementAsBlob(medicionId, format);
+
+        if (result.success) {
+            console.log(`✅ Medición ${medicionId} enviada exitosamente como blob`);
+        return { 
+            success: true, 
+                message: `Medición ${medicionId} enviada exitosamente como blob`,
+                measurementId: result.measurementId,
+                blobId: result.blobId,
+                blobName: result.blobName,
+                containerName: result.containerName,
+                format: result.format,
+                response: result.response
+            };
+        } else {
+            console.log(`❌ Error enviando medición como blob: ${result.error}`);
+            return {
+                success: false,
+                error: result.error
+            };
+        }
+
+    } catch (error) {
+        console.error('❌ Error enviando medición como blob:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Enviar última medición como blob
+ipcMain.handle('send-latest-medicion-as-blob', async (event, format = 'json') => {
+    try {
+        if (!blobSender) {
+            return { success: false, error: 'Servicio de blobs no inicializado' };
+        }
+
+        console.log(`📦 Enviando última medición como blob (formato: ${format})...`);
+
+        const result = await blobSender.sendLatestMeasurementAsBlob(format);
+
+        if (result.success) {
+            console.log(`✅ Última medición enviada exitosamente como blob`);
+            return {
+                success: true,
+                message: 'Última medición enviada exitosamente como blob',
+                measurementId: result.measurementId,
+                blobId: result.blobId,
+                blobName: result.blobName,
+                containerName: result.containerName,
+                format: result.format,
+                response: result.response
+            };
+        } else {
+            console.log(`❌ Error enviando última medición como blob: ${result.error}`);
+            return {
+                success: false,
+                error: result.error
+            };
+        }
+
+    } catch (error) {
+        console.error('❌ Error enviando última medición como blob:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Enviar mediciones como blobs por rango de fechas
+ipcMain.handle('send-mediciones-as-blobs-range', async (event, startDate, endDate, format = 'json') => {
+    try {
+        if (!blobSender) {
+            return { success: false, error: 'Servicio de blobs no inicializado' };
+        }
+
+        console.log(`📦 Enviando mediciones del ${startDate} al ${endDate} como blobs (formato: ${format})...`);
+
+        const result = await blobSender.sendMeasurementsAsBlobsByDateRange(startDate, endDate, format);
+
+        if (result.success) {
+            console.log(`✅ ${result.sent} blobs enviados exitosamente`);
+            return {
+                success: true,
+                message: `${result.sent} blobs enviados exitosamente`,
+                sent: result.sent,
+                total: result.total,
+                blobs: result.blobs,
+                response: result.response
+            };
+        } else {
+            console.log(`❌ Error enviando blobs: ${result.error}`);
+            return {
+                success: false,
+                sent: result.sent,
+                total: result.total,
+                error: result.error
+            };
+        }
+
+    } catch (error) {
+        console.error('❌ Error enviando mediciones como blobs:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Verificar estado del servicio de blobs
+ipcMain.handle('check-blob-service-status', async () => {
+    try {
+        if (!blobSender) {
+            return { success: false, error: 'Servicio de blobs no inicializado' };
+        }
+
+        const status = await blobSender.checkServiceStatus();
+        return {
+            success: true,
+            ...status
+        };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Crear configuración de blobs de ejemplo
+ipcMain.handle('create-blob-config', async () => {
+    try {
+        if (!blobSender) {
+            blobSender = new (require('./src/utils/blob-sender.js'))();
+        }
+
+        const result = await blobSender.createExampleConfig();
+        return result;
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
+// Verificar conexión a internet para el indicador
+ipcMain.handle('check-internet-for-indicator', async () => {
+    try {
+        if (!emailSender) {
+            return { success: false, connected: false, error: 'Servicio no inicializado' };
+        }
+
+        const InternetChecker = require('./src/utils/internet.js');
+        const internetChecker = new InternetChecker();
+        
+        const result = await internetChecker.checkConnection();
+        
+        return {
+            success: true,
+            connected: result.connected,
+            latency: result.latency || 0,
+            error: result.connected ? null : 'Sin conexión a internet'
+        };
+    } catch (error) {
+        return { success: false, connected: false, error: error.message };
+    }
+});
+
+// Enviar medición individual a plataforma desde interfaz
+ipcMain.handle('send-medicion-to-platform-ui', async (event, medicionId, format = 'json') => {
+    try {
+        if (!blobSender) {
+            return { success: false, error: 'Servicio de blobs no inicializado' };
+        }
+
+        console.log(`📦 Enviando medición ${medicionId} a plataforma desde interfaz...`);
+
+        const result = await blobSender.sendMeasurementAsBlob(medicionId, format);
+
+        if (result.success) {
+            console.log(`✅ Medición ${medicionId} enviada exitosamente a plataforma`);
+            return {
+                success: true,
+                message: `Medición ${medicionId} enviada exitosamente a la plataforma`,
+                measurementId: result.measurementId,
+                blobId: result.blobId,
+                blobName: result.blobName,
+                format: result.format,
+                markedAsSent: result.markedAsSent
+            };
+        } else {
+            console.log(`❌ Error enviando medición a plataforma: ${result.error}`);
+            return {
+                success: false,
+                error: result.error
+            };
+        }
+
+    } catch (error) {
+        console.error('❌ Error enviando medición a plataforma:', error);
         return { success: false, error: error.message };
     }
 });

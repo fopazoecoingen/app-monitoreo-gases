@@ -40,9 +40,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     updateMedicionTiempoFin: (medicionId, tiempoFin) => ipcRenderer.invoke('update-medicion-tiempo-fin', medicionId, tiempoFin),
     saveManualReading: (data, eventType) => ipcRenderer.invoke('save-manual-reading', data, eventType),
     
-    // Export and email operations
-    exportMedicionesExcel: (startDate, endDate) => ipcRenderer.invoke('export-mediciones-excel', startDate, endDate),
-    sendMedicionesEmail: (emailData, startDate, endDate) => ipcRenderer.invoke('send-mediciones-email', emailData, startDate, endDate),
+    // Export and email operations removidas
+    
+    // Blob operations
+    sendMedicionToPlatformUI: (medicionId, format) => ipcRenderer.invoke('send-medicion-to-platform-ui', medicionId, format),
+    
+    // Internet connection
+    checkInternetForIndicator: () => ipcRenderer.invoke('check-internet-for-indicator'),
     
     // Event listeners
     onDataUpdate: (callback) => ipcRenderer.on('data-update', callback),

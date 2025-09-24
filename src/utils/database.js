@@ -358,6 +358,7 @@ class DatabaseManager {
                     m.observaciones,
                     m.tiempo_inicio,
                     m.tiempo_fin,
+                    m.enviado_plataforma,
                     m.created_at,
                     COUNT(l.id) as total_lecturas
                 FROM medicion m
@@ -606,6 +607,91 @@ class DatabaseManager {
                         success: true,
                         data: '\uFEFF' + csvContent // BOM para UTF-8
                     });
+                }
+            });
+        });
+    }
+
+    /**
+     * Marca una medición como enviada a la plataforma
+     * @param {number} medicionId - ID de la medición
+     * @returns {Promise<{success: boolean, error?: string}>}
+     */
+    markMedicionAsSentToPlatform(medicionId) {
+        return new Promise((resolve) => {
+            if (!this.db) {
+                resolve({ success: false, error: 'Base de datos no conectada' });
+                return;
+            }
+
+            const query = 'UPDATE medicion SET enviado_plataforma = 1 WHERE id = ?';
+            
+            this.db.run(query, [medicionId], function(err) {
+                if (err) {
+                    console.error('Error marcando medición como enviada:', err.message);
+                    resolve({ success: false, error: err.message });
+                } else {
+                    console.log(`✅ Medición ${medicionId} marcada como enviada a la plataforma`);
+                    resolve({ success: true });
+                }
+            });
+        });
+    }
+
+    /**
+     * Marca múltiples mediciones como enviadas a la plataforma
+     * @param {Array<number>} medicionIds - Array de IDs de mediciones
+     * @returns {Promise<{success: boolean, updated: number, error?: string}>}
+     */
+    markMultipleMedicionesAsSentToPlatform(medicionIds) {
+        return new Promise((resolve) => {
+            if (!this.db) {
+                resolve({ success: false, updated: 0, error: 'Base de datos no conectada' });
+                return;
+            }
+
+            if (!medicionIds || medicionIds.length === 0) {
+                resolve({ success: false, updated: 0, error: 'No hay mediciones para marcar' });
+                return;
+            }
+
+            const placeholders = medicionIds.map(() => '?').join(',');
+            const query = `UPDATE medicion SET enviado_plataforma = 1 WHERE id IN (${placeholders})`;
+            
+            this.db.run(query, medicionIds, function(err) {
+                if (err) {
+                    console.error('Error marcando mediciones como enviadas:', err.message);
+                    resolve({ success: false, updated: 0, error: err.message });
+                } else {
+                    console.log(`✅ ${this.changes} mediciones marcadas como enviadas a la plataforma`);
+                    resolve({ success: true, updated: this.changes });
+                }
+            });
+        });
+    }
+
+    /**
+     * Obtiene el estado de envío de una medición
+     * @param {number} medicionId - ID de la medición
+     * @returns {Promise<{success: boolean, sent: boolean, error?: string}>}
+     */
+    getMedicionSentStatus(medicionId) {
+        return new Promise((resolve) => {
+            if (!this.db) {
+                resolve({ success: false, sent: false, error: 'Base de datos no conectada' });
+                return;
+            }
+
+            const query = 'SELECT enviado_plataforma FROM medicion WHERE id = ?';
+            
+            this.db.get(query, [medicionId], (err, row) => {
+                if (err) {
+                    console.error('Error obteniendo estado de envío:', err.message);
+                    resolve({ success: false, sent: false, error: err.message });
+                } else if (!row) {
+                    resolve({ success: false, sent: false, error: 'Medición no encontrada' });
+                } else {
+                    resolve({ success: true, sent: Boolean(row.enviado_plataforma) });
                 }
             });
         });

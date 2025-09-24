@@ -30,6 +30,69 @@ body {
     -webkit-app-region: drag;
 }
 
+/* Indicador de conexión a internet */
+.internet-indicator {
+    margin-right: 15px;
+    -webkit-app-region: no-drag;
+}
+
+.internet-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    font-size: 13px;
+    min-width: 120px;
+    justify-content: center;
+}
+
+.internet-status.connected {
+    background: rgba(76, 175, 80, 0.2);
+    border-color: rgba(76, 175, 80, 0.4);
+    color: #4CAF50;
+}
+
+.internet-status.disconnected {
+    background: rgba(244, 67, 54, 0.2);
+    border-color: rgba(244, 67, 54, 0.4);
+    color: #F44336;
+}
+
+.internet-status.checking {
+    background: rgba(255, 193, 7, 0.2);
+    border-color: rgba(255, 193, 7, 0.4);
+    color: #FFC107;
+}
+
+.status-icon {
+    font-size: 14px;
+    animation: none;
+}
+
+.status-icon.checking {
+    animation: spin 1s linear infinite;
+}
+
+.status-text {
+    font-weight: 500;
+    font-size: 12px;
+}
+
+.status-latency {
+    font-size: 10px;
+    opacity: 0.8;
+    font-weight: 400;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 .header-left {
     display: flex;
     align-items: center;
@@ -2986,6 +3049,30 @@ body {
 .action-btn.delete:hover {
     background: rgba(244, 67, 54, 0.2);
     border-color: #F44336;
+}
+
+.action-btn.send-platform { 
+    color: #4CAF50; 
+    border-color: rgba(76, 175, 80, 0.3);
+}
+
+.action-btn.send-platform:hover {
+    background: rgba(76, 175, 80, 0.2);
+    border-color: #4CAF50;
+}
+
+.action-btn.send-platform:disabled {
+    color: #666;
+    border-color: rgba(102, 102, 102, 0.3);
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.action-btn.send-platform:disabled:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(102, 102, 102, 0.3);
+    transform: none;
+    box-shadow: none;
 }
 
 /* Estilo para el badge de evento */
