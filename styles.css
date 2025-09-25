@@ -330,6 +330,21 @@ body {
     transition: border-color 0.2s;
 }
 
+.form-control option {
+    background: #2a2a2a;
+    color: #ffffff;
+    padding: 8px 12px;
+}
+
+.form-control option:hover {
+    background: #3a3a3a;
+}
+
+.form-control option:checked {
+    background: #4a90e2;
+    color: #ffffff;
+}
+
 .form-control:focus {
     outline: none;
     border-color: #4a90e2;
@@ -724,6 +739,228 @@ body {
 .toast-message {
     color: #ffffff;
     font-size: 14px;
+    font-weight: 500;
+}
+
+/* Gas Detail Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+    margin: 2% auto;
+    padding: 0;
+    border: 1px solid #4a4a4a;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 1000px;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
+    border-bottom: 1px solid #4a4a4a;
+}
+
+.modal-header h2 {
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.modal-body {
+    padding: 20px;
+    max-height: calc(90vh - 80px);
+    overflow-y: auto;
+}
+
+.gas-detail-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.gas-current-value {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.gas-current-value span:first-child {
+    font-size: 24px;
+    font-weight: 700;
+    color: #00e676;
+}
+
+.gas-current-value span:last-child {
+    font-size: 14px;
+    color: #aaa;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.gas-status {
+    font-size: 14px;
+    color: #aaa;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.gas-chart-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+}
+
+.time-range-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.time-range-selector label {
+    color: #ccc;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.time-range-selector select {
+    min-width: 150px;
+    font-size: 12px;
+}
+
+.custom-time-range {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.custom-time-range input {
+    font-size: 11px;
+    padding: 4px 6px;
+    min-width: 140px;
+}
+
+.custom-time-range span {
+    color: #ccc;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.custom-time-range .btn {
+    font-size: 11px;
+    padding: 4px 8px;
+    min-height: 28px;
+}
+
+.chart-stats {
+    margin-left: auto;
+    color: #aaa;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.gas-chart-container {
+    height: 300px;
+    margin-bottom: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.gas-history h3 {
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.event-log {
+    max-height: 200px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.event-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin-bottom: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    font-size: 12px;
+    color: #ccc;
+}
+
+.event-item:last-child {
+    margin-bottom: 0;
+}
+
+.event-time {
+    color: #aaa;
+    font-size: 11px;
+}
+
+.event-type {
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.event-value {
+    color: #00e676;
     font-weight: 500;
 }
 
@@ -1930,20 +2167,20 @@ body {
 }
 
 .btn-calibration {
-    padding: 8px 10px;
+    padding: 6px 8px;
     border: none;
-    border-radius: 6px;
+    border-radius: 4px;
     font-weight: 600;
-    font-size: 10px;
+    font-size: 9px;
     cursor: pointer;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 3px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    min-height: 36px; /* Reduced for compact layout */
+    letter-spacing: 0.3px;
+    min-height: 28px; /* More compact layout */
     touch-action: manipulation; /* Prevent double-tap zoom */
     -webkit-tap-highlight-color: transparent; /* Remove tap highlight */
 }
@@ -2595,36 +2832,71 @@ body {
 .monitoring-info {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
-    padding: 12px;
+    gap: 4px;
+    padding: 3px;
     background: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
+    border-radius: 2px;
+    font-size: 10px;
 }
 
 .monitoring-content {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
-    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+.monitoring-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 4px;
+}
+
+.monitoring-actions .btn {
+    padding: 4px 8px;
+    font-size: 10px;
+    min-height: 24px;
 }
 
 .monitoring-gas-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
     margin-bottom: 16px;
 }
 
 .monitoring-gas-card {
     background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
     border: 1px solid #4a4a4a;
-    border-radius: 6px;
-    padding: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-    transition: transform 0.3s ease;
-    min-height: 50px;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    min-height: 140px;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
+    position: relative;
+}
+
+.monitoring-gas-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    border-color: #666;
+}
+
+.monitoring-gas-card::after {
+    content: '👁️';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.monitoring-gas-card:hover::after {
+    opacity: 1;
 }
 
 .monitoring-gas-card:hover {
@@ -2651,32 +2923,32 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 2px;
+    margin-bottom: 1px;
 }
 
 .monitoring-gas-title {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
     color: #ffffff;
-    line-height: 1.2;
+    line-height: 1.3;
 }
 
 .monitoring-gas-unit {
     background: rgba(255, 255, 255, 0.1);
-    padding: 1px 4px;
-    border-radius: 3px;
-    font-size: 8px;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 9px;
     font-weight: 500;
     color: #aaa;
 }
 
 .monitoring-gas-value {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 700;
     color: #00e676;
     text-align: center;
-    margin-bottom: 2px;
-    min-height: 24px; /* Much smaller height */
+    margin-bottom: 4px;
+    min-height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2687,33 +2959,38 @@ body {
     justify-content: center;
     align-items: center;
     gap: 4px;
-    font-size: 11px;
+    font-size: 10px;
     color: #aaa;
+    margin-bottom: 4px;
 }
 
 .monitoring-gas-actions {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
     gap: 4px;
-    margin-top: 6px;
-    flex-wrap: wrap;
+    margin-top: 8px;
     justify-content: center;
 }
 
 .monitoring-gas-actions .btn {
-    padding: 4px 6px;
-    font-size: 9px;
+    padding: 4px 2px;
+    font-size: 8px;
     min-height: 24px;
     border-radius: 4px;
-    flex: 1;
-    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.1;
 }
 
 .monitoring-gas-actions .btn i {
-    font-size: 8px;
+    font-size: 7px;
     margin-right: 2px;
+    flex-shrink: 0;
 }
 
 .monitoring-charts {
@@ -2732,24 +3009,127 @@ body {
 .monitoring-calibration {
     background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
     border: 1px solid #4a4a4a;
-    border-radius: 8px;
-    padding: 12px 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    margin-bottom: 12px;
+    border-radius: 4px;
+    padding: 4px 6px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+    margin-bottom: 4px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    justify-content: space-between;
+}
+
+.calibration-controls {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.calibration-info {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
+    flex: 1;
+}
+
+.calibration-phase-selector {
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.calibration-phase-selector label {
+    display: inline;
+    color: #ffffff;
+    font-size: 9px;
+    font-weight: 600;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.calibration-phase-selector select {
+    width: auto;
+    min-width: 120px;
+    padding: 3px 4px;
+    background: #3a3a3a;
+    border: 1px solid #555;
+    border-radius: 2px;
+    color: #fff;
+    font-size: 9px;
+}
+
+.calibration-phase-info {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    margin-top: 0;
+    padding: 2px 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+    font-size: 8px;
+    color: #aaa;
+    align-items: center;
+}
+
+.calibration-phase-info span {
+    display: inline;
+    white-space: nowrap;
+}
+
+.calibration-status {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+}
+
+.status-label {
+    color: #aaaaaa;
+    font-weight: 500;
+}
+
+.status-value {
+    color: #ffffff;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 3px;
+    min-width: 40px;
+    text-align: center;
 }
 
 .monitoring-calibration h3 {
     color: #ffffff;
-    margin-bottom: 8px;
-    font-size: 14px;
+    margin: 0;
+    font-size: 11px;
     font-weight: 600;
+    white-space: nowrap;
 }
 
-.calibration-buttons-monitoring {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+.calibration-row {
+    display: flex;
+    align-items: center;
     gap: 6px;
-    margin-bottom: 8px;
+}
+
+.calibration-row .calibration-phase-selector {
+    margin: 0;
+    flex: 1;
+    max-width: 400px;
 }
 
 /* Touch screen optimizations for monitoring view */
@@ -2765,18 +3145,47 @@ body {
     }
     
     .monitoring-gas-cards {
-        gap: 6px;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 8px;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     }
     
     .monitoring-gas-actions {
         gap: 3px;
+        grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
     }
     
     .monitoring-gas-actions .btn {
-        padding: 3px 4px;
-        font-size: 8px;
-        min-height: 22px;
+        padding: 3px 2px;
+        font-size: 7px;
+        min-height: 20px;
+    }
+    
+    .monitoring-calibration {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    
+    .calibration-phase-selector {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+    }
+    
+    .calibration-phase-info {
+        flex-direction: column;
+        gap: 2px;
+    }
+    
+    .calibration-row .calibration-phase-selector {
+        max-width: none;
+    }
+    
+    .calibration-controls {
+        order: 1;
+    }
+    
+    .calibration-info {
+        order: 2;
     }
     
     .monitoring-gas-card {
@@ -2831,18 +3240,23 @@ body {
     
     .monitoring-gas-cards {
         gap: 6px;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+    
+    .monitoring-gas-actions {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 3px;
     }
     
     .monitoring-gas-actions .btn {
-        padding: 2px 3px;
+        padding: 3px 2px;
         font-size: 7px;
-        min-height: 20px;
+        min-height: 18px;
     }
     
     .monitoring-gas-card {
-        padding: 10px;
-        min-height: 65px;
+        padding: 8px;
+        min-height: 120px;
     }
     
     .monitoring-gas-value {
@@ -4127,18 +4541,18 @@ input[type="checkbox"] {
 }
 
 .mediciones-controls .form-control.compact {
-    height: 28px !important;
+    height: 36px !important;
     font-size: 12px !important;
-    padding: 3px 6px !important;
+    padding: 6px 8px !important;
     border-radius: 4px !important;
-    width: 85px !important;
+    width: 120px !important;
 }
 
 .mediciones-controls .btn.compact {
-    height: 28px !important;
-    padding: 3px 8px !important;
+    height: 36px !important;
+    padding: 6px 12px !important;
     font-size: 12px !important;
-    min-width: 55px !important;
+    min-width: 70px !important;
 }
 
 .mediciones-controls {

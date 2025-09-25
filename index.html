@@ -338,7 +338,22 @@
                                         </div>
                                     </div>
                                     
-                               
+                                    <!-- Calibration Controls for Monitoring View -->
+                                    <div class="monitoring-calibration">
+                                        <h3>Control de Calibración</h3>
+                                        <div class="calibration-phase-selector">
+                                            <label for="calibrationPhase">Fase:</label>
+                                            <select id="calibrationPhase" class="form-control">
+                                                <option value="initial">Calibración Inicial</option>
+                                                <option value="intermediate">Calibración Intermedia</option>
+                                                <option value="final">Calibración Final</option>
+                                            </select>
+                                        </div>
+                                        <div class="calibration-phase-info">
+                                            <span id="currentPhaseInfo">Fase: Calibración Inicial</span>
+                                            <span id="phaseCommandsInfo">Comandos: ZERO, SPAN, MEDIO</span>
+                                        </div>
+                                    </div>
                                     
                                     <div class="monitoring-content">
                                         <!-- Gas Cards for Monitoring View -->
@@ -346,11 +361,12 @@
                                             <!-- Gas cards will be dynamically populated here -->
                                         </div>
 
-                                        <!-- Real-time Charts for Monitoring -->
-                                        <div class="monitoring-charts">
-                                            <div class="monitoring-chart-container" id="monitoringChartContainer">
-                                                <!-- Charts will be dynamically created here -->
-                                            </div>
+                                        <!-- View Graphs Button -->
+                                        <div class="monitoring-actions">
+                                            <button id="viewGraphsBtn" class="btn btn-primary btn-large">
+                                                <i class="fas fa-chart-line"></i>
+                                                Ver Gráficos
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -652,6 +668,61 @@
         <div class="toast-content">
             <i class="toast-icon"></i>
             <span class="toast-message"></span>
+        </div>
+    </div>
+
+    <!-- Gas Detail Modal -->
+    <div id="gasDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalGasTitle">Detalle del Gas</h2>
+                <button id="closeModalBtn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="gas-detail-info">
+                    <div class="gas-current-value">
+                        <span id="modalGasValue">--</span>
+                        <span id="modalGasUnit">--</span>
+                    </div>
+                    <div class="gas-status">
+                        <span id="modalGasStatus">Estable</span>
+                    </div>
+                </div>
+                
+                <div class="gas-chart-controls">
+                    <div class="time-range-selector">
+                        <label for="timeRangeSelect">Rango de tiempo:</label>
+                        <select id="timeRangeSelect" class="form-control">
+                            <option value="last5min">Últimos 5 minutos</option>
+                            <option value="last15min">Últimos 15 minutos</option>
+                            <option value="last30min">Últimos 30 minutos</option>
+                            <option value="last1hour">Última 1 hora</option>
+                            <option value="last2hours">Últimas 2 horas</option>
+                            <option value="custom">Personalizado</option>
+                        </select>
+                    </div>
+                    <div class="custom-time-range" id="customTimeRange" style="display: none;">
+                        <input type="datetime-local" id="startTime" class="form-control">
+                        <span>hasta</span>
+                        <input type="datetime-local" id="endTime" class="form-control">
+                        <button id="applyCustomRange" class="btn btn-primary btn-sm">Aplicar</button>
+                    </div>
+                    <div class="chart-stats">
+                        <span id="chartStats">Puntos: 0 | Rango: --</span>
+                    </div>
+                </div>
+                
+                <div class="gas-chart-container">
+                    <canvas id="gasDetailChart"></canvas>
+                </div>
+                
+                <div class="gas-history">
+                    <h3>Historial de Eventos</h3>
+                    <div id="gasEventLog" class="event-log">
+                        <!-- Eventos se cargarán aquí -->
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

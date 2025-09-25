@@ -43,13 +43,22 @@ const monitoringLastReadingElement = document.getElementById('monitoringLastRead
 const monitoringGasCardsContainer = document.getElementById('monitoringGasCards');
 const monitoringChartContainer = document.getElementById('monitoringChartContainer');
 
+// Gas detail modal elements
+const gasDetailModal = document.getElementById('gasDetailModal');
+const modalGasTitle = document.getElementById('modalGasTitle');
+const modalGasValue = document.getElementById('modalGasValue');
+const modalGasUnit = document.getElementById('modalGasUnit');
+const modalGasStatus = document.getElementById('modalGasStatus');
+const closeModalBtn = document.getElementById('closeModalBtn');
+const gasEventLog = document.getElementById('gasEventLog');
+
+// Gas detail chart and data
+let gasDetailChart = null;
+let currentGasType = null;
+let gasEventHistory = [];
+
 // Verify elements exist
-if (!calibrationStatus) {
-    console.error('calibrationStatus element not found');
-}
-if (!lastEvent) {
-    console.error('lastEvent element not found');
-}
+// Elements removed from UI in compact layout; guard silently
 if (!totalReadingsElement) {
     // console.error('totalReadingsElement not found'); // Comentado - elemento no existe
 }
@@ -106,6 +115,26 @@ let referenceLines = {
     co: null,
     ch4: null,
     co2: null
+};
+
+// Calibration phases and commands
+let currentCalibrationPhase = 'initial';
+const calibrationPhases = {
+    initial: {
+        name: 'Calibración Inicial',
+        commands: ['ZERO', 'SPAN', 'MEDIO'],
+        description: 'zero c1, spam c1, medio c1, zero c2i, spam c2i, medio c2i'
+    },
+    intermediate: {
+        name: 'Calibración Intermedia',
+        commands: ['INICIO_MEDICION_1', 'TERMINO_1ERA_CORRIDA', 'ZERO_C2_INT', 'SPAN_C2_INT', 'MEDIO_C2_INT'],
+        description: 'Inicio Medicion 1, Termino 1era Corrida, zero c2 int, spam c2 int, medio c2 int'
+    },
+    final: {
+        name: 'Calibración Final',
+        commands: ['INICIO_MEDICION_2', 'TERMINO_2DA_CORRIDA', 'ZERO_C2_F', 'SPAN_C2_F', 'MEDIO_C2_F'],
+        description: 'Inicio Medicion 2, Termino 2da Corrida, zero c2 f, spam c2 f, medio c2 f'
+    }
 };
 
 // Initialize app
@@ -173,23 +202,44 @@ function setupEventListeners() {
     // Reference line controls
     setupReferenceControls();
     
+    // Initialize calibration phase
+    initializeCalibrationPhase();
+    
     // Monitoring view handlers
     if (stopMonitoringBtn) stopMonitoringBtn.addEventListener('click', stopMonitoringFromView);
     if (exitMonitoringBtn) exitMonitoringBtn.addEventListener('click', exitMonitoringView);
     
-    // Monitoring calibration buttons
-    const zeroBtnMonitoring = document.getElementById('zeroBtnMonitoring');
-    const spanBtnMonitoring = document.getElementById('spanBtnMonitoring');
-    const startGasBtnMonitoring = document.getElementById('startGasBtnMonitoring');
-    const endInjectionBtnMonitoring = document.getElementById('endInjectionBtnMonitoring');
+    // View graphs button
+    const viewGraphsBtn = document.getElementById('viewGraphsBtn');
+    if (viewGraphsBtn) {
+        viewGraphsBtn.addEventListener('click', () => switchTab('graphs'));
+    }
     
-    if (zeroBtnMonitoring) zeroBtnMonitoring.addEventListener('click', () => markCalibrationEvent('ZERO'));
-    if (spanBtnMonitoring) spanBtnMonitoring.addEventListener('click', () => markCalibrationEvent('SPAN'));
-    if (startGasBtnMonitoring) startGasBtnMonitoring.addEventListener('click', () => markCalibrationEvent('INICIO_GAS_PATRON'));
-    if (endInjectionBtnMonitoring) endInjectionBtnMonitoring.addEventListener('click', () => markCalibrationEvent('FIN_INYECCION_GAS'));
+    // Calibration phase selector
+    const calibrationPhaseSelect = document.getElementById('calibrationPhase');
+    if (calibrationPhaseSelect) {
+        calibrationPhaseSelect.addEventListener('change', handleCalibrationPhaseChange);
+    }
+    
+    // Monitoring calibration buttons
+    // Global calibration buttons removed - using gas-specific buttons instead
     
     // Sidebar toggle
     sidebarToggleBtn.addEventListener('click', toggleSidebar);
+    
+    // Gas detail modal handlers
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', closeGasDetailModal);
+    }
+    
+    // Close modal when clicking outside
+    if (gasDetailModal) {
+        gasDetailModal.addEventListener('click', (e) => {
+            if (e.target === gasDetailModal) {
+                closeGasDetailModal();
+            }
+        });
+    }
     
     // Close sidebar when clicking overlay
     sidebarOverlay.addEventListener('click', closeSidebar);
@@ -484,43 +534,39 @@ function updateDataCount() {
 
 async function markCalibrationEvent(eventType) {
     try {
-        // Send event to main process
-        await window.electronAPI.setCalibrationEvent(eventType);
+        // Create event with phase information
+        const phaseEvent = `${currentCalibrationPhase.toUpperCase()}_${eventType}`;
         
-        currentCalibrationEvent = eventType;
+        // Send event to main process
+        await window.electronAPI.setCalibrationEvent(phaseEvent);
+        
+        currentCalibrationEvent = phaseEvent;
         totalEvents++;
+        calibrationEventCount++;
+        lastCalibrationEvent = phaseEvent.replace(/_/g, ' ');
         
         // Update UI - check if elements exist
         if (calibrationStatus) {
-            calibrationStatus.textContent = eventType.replace(/_/g, ' ');
+            calibrationStatus.textContent = phaseEvent.replace(/_/g, ' ');
         }
         if (lastEvent) {
-            lastEvent.textContent = eventType.replace(/_/g, ' ');
+            lastEvent.textContent = phaseEvent.replace(/_/g, ' ');
         }
         if (totalEventsElement) {
             totalEventsElement.textContent = totalEvents;
         }
         
+        // Update calibration status display
+        updateCalibrationStatus();
+        
         // Visual feedback - check if we're in monitoring view
         const monitoringTab = document.getElementById('monitoring-view-tab');
         if (monitoringTab && monitoringTab.classList.contains('active')) {
-            const buttonMap = {
-                'ZERO': document.getElementById('zeroBtnMonitoring'),
-                'SPAN': document.getElementById('spanBtnMonitoring'),
-                'INICIO_GAS_PATRON': document.getElementById('startGasBtnMonitoring'),
-                'FIN_INYECCION_GAS': document.getElementById('endInjectionBtnMonitoring')
-            };
-            
-            const button = buttonMap[eventType];
-            if (button) {
-                button.classList.add('active');
-                setTimeout(() => {
-                    button.classList.remove('active');
-                }, 2000);
-            }
+            // Global buttons removed - feedback handled by gas-specific buttons
+            console.log(`Evento de calibración registrado: ${phaseEvent}`);
         }
         
-        showToast('success', `Evento marcado: ${eventType.replace(/_/g, ' ')}`);
+        showToast('success', `Evento marcado: ${phaseEvent.replace(/_/g, ' ')}`);
         
         // Reset to Normal after 3 seconds (solo en la UI, no en el backend)
         setTimeout(() => {
@@ -784,6 +830,123 @@ function showMeasurementCompletedNotification(data) {
             }
         }, 300);
     }, 5000);
+}
+
+// Calibration Phase Functions
+let calibrationEventCount = 0;
+let lastCalibrationEvent = null;
+
+function initializeCalibrationPhase() {
+    // Set initial phase
+    currentCalibrationPhase = 'initial';
+    
+    // Update UI
+    updateCalibrationPhaseInfo();
+    updateCalibrationButtons();
+    updateCalibrationStatus();
+    
+    // Update gas-specific buttons
+    updateGasButtonsForCurrentPhase();
+}
+
+function handleCalibrationPhaseChange(event) {
+    const selectedPhase = event.target.value;
+    currentCalibrationPhase = selectedPhase;
+    
+    // Update phase info display
+    updateCalibrationPhaseInfo();
+    
+    // Update button labels based on phase
+    updateCalibrationButtons();
+    
+    // Update gas-specific buttons
+    updateGasButtonsForCurrentPhase();
+    
+    showToast('info', `Fase cambiada a: ${calibrationPhases[selectedPhase].name}`);
+}
+
+function updateCalibrationPhaseInfo() {
+    const currentPhaseInfo = document.getElementById('currentPhaseInfo');
+    const phaseCommandsInfo = document.getElementById('phaseCommandsInfo');
+    
+    if (currentPhaseInfo) {
+        currentPhaseInfo.textContent = `Fase: ${calibrationPhases[currentCalibrationPhase].name}`;
+    }
+    
+    if (phaseCommandsInfo) {
+        phaseCommandsInfo.textContent = `Comandos: ${calibrationPhases[currentCalibrationPhase].commands.join(', ')}`;
+    }
+}
+
+function updateCalibrationButtons() {
+    // Global calibration buttons removed - using gas-specific buttons instead
+    // This function is kept for compatibility but does nothing
+}
+
+function updateGasButtonsForCurrentPhase() {
+    const phase = calibrationPhases[currentCalibrationPhase];
+    if (!phase) return;
+    
+    // Mapeo de comandos a iconos y estilos
+    const commandConfig = {
+        'ZERO': { icon: 'fas fa-circle', class: 'zero', color: '#ff6b35' },
+        'SPAN': { icon: 'fas fa-adjust', class: 'span', color: '#4caf50' },
+        'MEDIO': { icon: 'fas fa-adjust', class: 'span', color: '#4caf50' },
+        'INICIO_MEDICION_1': { icon: 'fas fa-play-circle', class: 'start-gas', color: '#2196f3' },
+        'INICIO_MEDICION_2': { icon: 'fas fa-play-circle', class: 'start-gas', color: '#2196f3' },
+        'TERMINO_1ERA_CORRIDA': { icon: 'fas fa-stop-circle', class: 'end-injection', color: '#9c27b0' },
+        'TERMINO_2DA_CORRIDA': { icon: 'fas fa-stop-circle', class: 'end-injection', color: '#9c27b0' },
+        'ZERO_C2_INT': { icon: 'fas fa-circle', class: 'zero', color: '#ff6b35' },
+        'SPAN_C2_INT': { icon: 'fas fa-adjust', class: 'span', color: '#4caf50' },
+        'MEDIO_C2_INT': { icon: 'fas fa-adjust', class: 'span', color: '#4caf50' },
+        'ZERO_C2_F': { icon: 'fas fa-circle', class: 'zero', color: '#ff6b35' },
+        'SPAN_C2_F': { icon: 'fas fa-adjust', class: 'span', color: '#4caf50' },
+        'MEDIO_C2_F': { icon: 'fas fa-adjust', class: 'span', color: '#4caf50' }
+    };
+    
+    // Actualizar botones para cada gas
+    const gasIds = ['monitoring-o2', 'monitoring-co', 'monitoring-ch4', 'monitoring-co2'];
+    
+    gasIds.forEach(gasId => {
+        const actionsContainer = document.getElementById(`${gasId}-actions`);
+        if (!actionsContainer) return;
+        
+        // Limpiar botones existentes
+        actionsContainer.innerHTML = '';
+        
+        // Crear botones según los comandos de la fase actual
+        phase.commands.forEach(command => {
+            const config = commandConfig[command];
+            if (!config) return;
+            
+            const button = document.createElement('button');
+            button.className = `btn btn-calibration ${config.class}`;
+            button.setAttribute('data-gas', gasId);
+            button.setAttribute('data-action', command);
+            button.style.backgroundColor = config.color;
+            button.innerHTML = `<i class="${config.icon}"></i> ${command.replace(/_/g, ' ')}`;
+            
+            actionsContainer.appendChild(button);
+        });
+    });
+}
+
+function updateCalibrationStatus() {
+    const statusElement = document.getElementById('calibrationStatus');
+    const lastEventElement = document.getElementById('lastEvent');
+    const totalEventsElement = document.getElementById('totalEvents');
+    
+    if (statusElement) {
+        statusElement.textContent = 'Normal';
+    }
+    
+    if (lastEventElement) {
+        lastEventElement.textContent = lastCalibrationEvent || '-';
+    }
+    
+    if (totalEventsElement) {
+        totalEventsElement.textContent = calibrationEventCount.toString();
+    }
 }
 
 // Reference Line Functions
@@ -1217,9 +1380,6 @@ function initializeMonitoringView(gasConfig) {
     // Create gas cards for selected gases
     createMonitoringGasCards(gasConfig);
     
-    // Create monitoring charts
-    createMonitoringCharts(gasConfig);
-    
     // Reset monitoring counters
     monitoringDataCount = 0;
     monitoringStartTime = new Date();
@@ -1289,21 +1449,17 @@ function createMonitoringGasCards(gasConfig) {
                 <i class="fas fa-arrow-up"></i>
                 <span>Estable</span>
             </div>
-            <div class="monitoring-gas-actions">
-                <button class="btn btn-calibration zero" data-gas="${gas.id}" data-action="ZERO">
-                    <i class="fas fa-circle"></i> ZERO
-                </button>
-                <button class="btn btn-calibration span" data-gas="${gas.id}" data-action="SPAN">
-                    <i class="fas fa-adjust"></i> SPAN
-                </button>
-                <button class="btn btn-calibration start-gas" data-gas="${gas.id}" data-action="INICIO">
-                    <i class="fas fa-play-circle"></i> INICIO
-                </button>
-                <button class="btn btn-calibration end-injection" data-gas="${gas.id}" data-action="FIN">
-                    <i class="fas fa-stop-circle"></i> FIN
-                </button>
+            <div class="monitoring-gas-actions" id="${gas.id}-actions">
+                <!-- Los botones se generarán dinámicamente según la fase de calibración -->
             </div>
         `;
+        
+        // Add click handler to open gas detail modal
+        gasCard.addEventListener('click', (e) => {
+            // Don't open modal if clicking on buttons
+            if (e.target.closest('button')) return;
+            openGasDetailModal(gas.id, gas.title, gas.unit);
+        });
         
         if (monitoringGasCardsContainer) {
             monitoringGasCardsContainer.appendChild(gasCard);
@@ -1328,6 +1484,14 @@ function createMonitoringGasCards(gasConfig) {
             try {
                 showLoading('Marcando evento...');
                 await window.electronAPI.markGasEvent(gas, action);
+                
+                // Get current gas value for history
+                const gasValueElement = document.getElementById(`${gasId}-value`);
+                const currentValue = gasValueElement ? gasValueElement.textContent : '--';
+                
+                // Add to gas event history
+                addGasEventToHistory(action, currentValue);
+                
                 showToast('success', `Evento ${action} (${gas.toUpperCase()}) marcado`);
             } catch (err) {
                 showToast('error', `No se pudo marcar evento: ${err.message}`);
@@ -1353,6 +1517,14 @@ function createMonitoringGasCards(gasConfig) {
                 try {
                     showLoading('Marcando evento...');
                     await window.electronAPI.markGasEvent(gas, action);
+                    
+                    // Get current gas value for history
+                    const gasValueElement = document.getElementById(`${gasId}-value`);
+                    const currentValue = gasValueElement ? gasValueElement.textContent : '--';
+                    
+                    // Add to gas event history
+                    addGasEventToHistory(action, currentValue);
+                    
                     showToast('success', `Evento ${action} (${gas.toUpperCase()}) marcado`);
                 } catch (err) {
                     showToast('error', `No se pudo marcar evento: ${err.message}`);
@@ -1362,6 +1534,9 @@ function createMonitoringGasCards(gasConfig) {
             })();
         });
     }
+    
+    // Generar botones dinámicamente para cada gas
+    updateGasButtonsForCurrentPhase();
 }
 
 function createMonitoringCharts(gasConfig) {
@@ -1480,21 +1655,41 @@ function updateMonitoringView(data) {
     if (data.o2 !== undefined) {
         const o2ValueElement = document.getElementById('monitoring-o2-value');
         if (o2ValueElement) o2ValueElement.textContent = data.o2.toFixed(3);
+        
+        // Update detail chart if modal is open for O2
+        if (currentGasType === 'o2' && gasDetailModal.style.display === 'block') {
+            updateGasDetailChart(data.o2, data.timestamp);
+        }
     }
     
     if (data.co !== undefined) {
         const coValueElement = document.getElementById('monitoring-co-value');
         if (coValueElement) coValueElement.textContent = data.co.toFixed(3);
+        
+        // Update detail chart if modal is open for CO
+        if (currentGasType === 'co' && gasDetailModal.style.display === 'block') {
+            updateGasDetailChart(data.co, data.timestamp);
+        }
     }
     
     if (data.ch4 !== undefined) {
         const ch4ValueElement = document.getElementById('monitoring-ch4-value');
         if (ch4ValueElement) ch4ValueElement.textContent = data.ch4.toFixed(3);
+        
+        // Update detail chart if modal is open for CH4
+        if (currentGasType === 'ch4' && gasDetailModal.style.display === 'block') {
+            updateGasDetailChart(data.ch4, data.timestamp);
+        }
     }
     
     if (data.co2 !== undefined) {
         const co2ValueElement = document.getElementById('monitoring-co2-value');
         if (co2ValueElement) co2ValueElement.textContent = data.co2.toFixed(3);
+        
+        // Update detail chart if modal is open for CO2
+        if (currentGasType === 'co2' && gasDetailModal.style.display === 'block') {
+            updateGasDetailChart(data.co2, data.timestamp);
+        }
     }
     
     // Update monitoring info
@@ -1578,12 +1773,12 @@ async function stopMonitoringFromView() {
                 console.log('Timer de monitoreo detenido');
             }
             
-            // Clean up monitoring charts
-            if (monitoringCharts.combined) {
-                monitoringCharts.combined.destroy();
-                monitoringCharts.combined = null;
-                console.log('Gráficos de monitoreo limpiados');
-            }
+    // Clean up monitoring charts (no longer needed)
+    if (monitoringCharts.combined) {
+        monitoringCharts.combined.destroy();
+        monitoringCharts.combined = null;
+        console.log('Gráficos de monitoreo limpiados');
+    }
             
             // Reset monitoring counters
             monitoringDataCount = 0;
@@ -1612,7 +1807,7 @@ function exitMonitoringView() {
         monitoringTimer = null;
     }
     
-    // Clean up monitoring charts
+    // Clean up monitoring charts (no longer needed)
     if (monitoringCharts.combined) {
         monitoringCharts.combined.destroy();
         monitoringCharts.combined = null;
@@ -1741,3 +1936,230 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Exponer globalmente para acceso manual
 window.internetIndicator = internetIndicator;
+
+// ===== GAS DETAIL MODAL FUNCTIONS =====
+
+function openGasDetailModal(gasId, gasTitle, gasUnit) {
+    currentGasType = gasId.replace('monitoring-', '');
+    
+    // Update modal title and info
+    modalGasTitle.textContent = gasTitle;
+    modalGasUnit.textContent = gasUnit;
+    
+    // Get current gas value
+    const gasValueElement = document.getElementById(`${gasId}-value`);
+    const currentValue = gasValueElement ? gasValueElement.textContent : '--';
+    modalGasValue.textContent = currentValue;
+    
+    // Get current status
+    const gasTrendElement = gasValueElement?.parentElement?.querySelector('.monitoring-gas-trend span');
+    const currentStatus = gasTrendElement ? gasTrendElement.textContent : 'Estable';
+    modalGasStatus.textContent = currentStatus;
+    
+    // Show modal
+    gasDetailModal.style.display = 'block';
+    
+    // Initialize chart and load history
+    initializeGasDetailChart();
+    loadGasEventHistory();
+}
+
+function closeGasDetailModal() {
+    gasDetailModal.style.display = 'none';
+    
+    // Destroy chart if exists
+    if (gasDetailChart) {
+        gasDetailChart.destroy();
+        gasDetailChart = null;
+    }
+    
+    currentGasType = null;
+    gasEventHistory = [];
+}
+
+function initializeGasDetailChart() {
+    const ctx = document.getElementById('gasDetailChart');
+    if (!ctx) return;
+    
+    // Destroy existing chart
+    if (gasDetailChart) {
+        gasDetailChart.destroy();
+    }
+    
+    gasDetailChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: getGasDisplayName(currentGasType),
+                data: [],
+                borderColor: getGasColor(currentGasType),
+                backgroundColor: getGasColor(currentGasType) + '20',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#ffffff'
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        color: '#aaa',
+                        maxTicksLimit: 10,
+                        font: {
+                            size: 11
+                        }
+                    },
+                    grid: {
+                        color: '#333'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Tiempo',
+                        color: '#ccc',
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                y: {
+                    ticks: {
+                        color: '#aaa',
+                        font: {
+                            size: 11
+                        }
+                    },
+                    grid: {
+                        color: '#333'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Valor',
+                        color: '#ccc',
+                        font: {
+                            size: 12
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateGasDetailChart(value, timestamp) {
+    if (!gasDetailChart || !currentGasType) return;
+    
+    const chart = gasDetailChart;
+    const now = new Date(timestamp || Date.now());
+    const timeLabel = now.toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    
+    // Add new data point
+    chart.data.labels.push(timeLabel);
+    chart.data.datasets[0].data.push(parseFloat(value));
+    
+    // Keep only last 50 data points
+    if (chart.data.labels.length > 50) {
+        chart.data.labels.shift();
+        chart.data.datasets[0].data.shift();
+    }
+    
+    chart.update('none');
+}
+
+function loadGasEventHistory() {
+    if (!currentGasType) return;
+    
+    // Clear existing events
+    gasEventLog.innerHTML = '';
+    
+    // Load events from localStorage
+    const events = JSON.parse(localStorage.getItem(`gasEvents_${currentGasType}`) || '[]');
+    
+    if (events.length === 0) {
+        gasEventLog.innerHTML = '<div class="event-item">No hay eventos registrados</div>';
+        return;
+    }
+    
+    // Display events (most recent first)
+    events.reverse().forEach(event => {
+        const eventItem = document.createElement('div');
+        eventItem.className = 'event-item';
+        const eventDate = new Date(event.timestamp);
+        const timeString = eventDate.toLocaleString('es-ES', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        eventItem.innerHTML = `
+            <span class="event-time">${timeString}</span>
+            <span class="event-type">${event.type}</span>
+            <span class="event-value">${event.value}</span>
+        `;
+        gasEventLog.appendChild(eventItem);
+    });
+}
+
+function addGasEventToHistory(eventType, value, timestamp) {
+    if (!currentGasType) return;
+    
+    const event = {
+        type: eventType,
+        value: value,
+        timestamp: timestamp || Date.now()
+    };
+    
+    // Load existing events
+    const events = JSON.parse(localStorage.getItem(`gasEvents_${currentGasType}`) || '[]');
+    
+    // Add new event
+    events.push(event);
+    
+    // Keep only last 100 events
+    if (events.length > 100) {
+        events.shift();
+    }
+    
+    // Save back to localStorage
+    localStorage.setItem(`gasEvents_${currentGasType}`, JSON.stringify(events));
+    
+    // Reload history if modal is open
+    if (gasDetailModal.style.display === 'block') {
+        loadGasEventHistory();
+    }
+}
+
+function getGasDisplayName(gasType) {
+    const names = {
+        'o2': 'O₂ - Oxígeno',
+        'co': 'CO - Monóxido de Carbono',
+        'ch4': 'CH₄ - Metano',
+        'co2': 'CO₂ - Dióxido de Carbono'
+    };
+    return names[gasType] || gasType;
+}
+
+function getGasColor(gasType) {
+    const colors = {
+        'o2': '#00b0ff',
+        'co': '#ff6b35',
+        'ch4': '#4caf50',
+        'co2': '#8bc34a'
+    };
+    return colors[gasType] || '#666';
+}
