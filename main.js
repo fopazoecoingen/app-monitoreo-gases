@@ -495,6 +495,61 @@ ipcMain.handle('get-serial-ports', async () => {
     }
 });
 
+// Marcar evento específico por gas
+ipcMain.handle('mark-gas-event', async (event, gas, action) => {
+    try {
+        const now = new Date();
+        const eventMap = {
+            'ZERO': 'ZERO',
+            'SPAN': 'SPAN',
+            'INICIO': 'INICIO_GAS_PATRON',
+            'FIN': 'FIN_INYECCION_GAS'
+        };
+        const resolvedEvent = eventMap[action] || 'Normal';
+
+        // Leer datos actuales (última lectura disponible si hay puerto)
+        let currentData = { o2: null, co: null, ch4: null, co2: null };
+        try {
+            const data = await readAnalyzerData();
+            currentData = { ...currentData, ...data };
+        } catch (err) {
+            // Si falla la lectura, continuamos solo con marca de tiempo
+            console.warn('No se pudo leer datos para el hito, se guardará solo evento:', err.message);
+        }
+
+        // Filtrar para que solo se guarde el gas indicado en Excel
+        const excelData = { o2: null, co: null, ch4: null, co2: null };
+        if (gas === 'o2') excelData.o2 = currentData.o2;
+        if (gas === 'co') excelData.co = currentData.co;
+        if (gas === 'ch4') excelData.ch4 = currentData.ch4;
+        if (gas === 'co2') excelData.co2 = currentData.co2;
+
+        // Guardar una fila en Excel con el evento específico
+        await saveToExcel(excelData, `${resolvedEvent}_${gas.toUpperCase()}`);
+
+        // Registrar en la base de datos como lectura detallada/hito si hay una medición activa
+        if (databaseManager && databaseManager.isDatabaseConnected()) {
+            if (currentMeasurementId) {
+                const timestamp = now.toLocaleString('sv-SE');
+                try {
+                    await databaseManager.saveDetailedReading(
+                        currentMeasurementId,
+                        excelData,
+                        timestamp,
+                        `${resolvedEvent}_${gas.toUpperCase()}`
+                    );
+                } catch (error) {
+                    console.error('Error guardando hito en DB:', error);
+                }
+            }
+        }
+
+        return { success: true };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
 ipcMain.handle('connect-serial', async (event, portPath, baudRate) => {
     try {
         if (port && port.isOpen) {
@@ -638,13 +693,13 @@ ipcMain.handle('start-reading', async () => {
             mainWindow.webContents.send('data-error', error.message);
         }
         
-        setTimeout(readLoop, 60000); // Intervalo de lectura: 60 segundos (1 minuto)
+        setTimeout(readLoop, 5000); // Intervalo de lectura: 5 segundos
     };
     
     readLoop();
     
-    console.log('⏰ Intervalo de lectura configurado: 60 segundos (1 minuto)');
-    return { success: true, message: 'Iniciando lectura de datos cada minuto' };
+    console.log('⏰ Intervalo de lectura configurado: 5 segundos');
+    return { success: true, message: 'Iniciando lectura de datos cada 5 segundos' };
 });
 
 ipcMain.handle('stop-reading', async () => {

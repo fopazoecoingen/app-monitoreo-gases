@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     
     // Calibration events
     setCalibrationEvent: (eventType) => ipcRenderer.invoke('set-calibration-event', eventType),
+   // Nuevo: marcar evento por gas
+    markGasEvent: (gas, action) => ipcRenderer.invoke('mark-gas-event', gas, action),
     
     // File operations
     getExcelFilePath: () => ipcRenderer.invoke('get-excel-file-path'),

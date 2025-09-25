@@ -248,6 +248,10 @@
                                             <div class="chart-header">
                                                 <h3>O₂ - Oxígeno</h3>
                                                 <span class="unit">%Vol</span>
+                                                <div class="chart-controls">
+                                                    <input type="number" id="o2Reference" class="reference-input" placeholder="Ref" step="0.001" min="0">
+                                                    <button class="btn btn-sm btn-secondary" id="setO2Reference">Establecer</button>
+                                                </div>
                                             </div>
                                             <div class="chart-wrapper">
                                                 <canvas id="o2Chart"></canvas>
@@ -258,6 +262,10 @@
                                             <div class="chart-header">
                                                 <h3>CO - Monóxido de Carbono</h3>
                                                 <span class="unit">ppm</span>
+                                                <div class="chart-controls">
+                                                    <input type="number" id="coReference" class="reference-input" placeholder="Ref" step="0.001" min="0">
+                                                    <button class="btn btn-sm btn-secondary" id="setCOReference">Establecer</button>
+                                                </div>
                                             </div>
                                             <div class="chart-wrapper">
                                                 <canvas id="coChart"></canvas>
@@ -268,6 +276,10 @@
                                             <div class="chart-header">
                                                 <h3>CH₄ - Metano</h3>
                                                 <span class="unit">ppm</span>
+                                                <div class="chart-controls">
+                                                    <input type="number" id="ch4Reference" class="reference-input" placeholder="Ref" step="0.001" min="0">
+                                                    <button class="btn btn-sm btn-secondary" id="setCH4Reference">Establecer</button>
+                                                </div>
                                             </div>
                                             <div class="chart-wrapper">
                                                 <canvas id="ch4Chart"></canvas>
@@ -278,6 +290,10 @@
                                             <div class="chart-header">
                                                 <h3>CO₂ - Dióxido de Carbono</h3>
                                                 <span class="unit">%</span>
+                                                <div class="chart-controls">
+                                                    <input type="number" id="co2Reference" class="reference-input" placeholder="Ref" step="0.001" min="0">
+                                                    <button class="btn btn-sm btn-secondary" id="setCO2Reference">Establecer</button>
+                                                </div>
                                             </div>
                                             <div class="chart-wrapper">
                                                 <canvas id="co2Chart"></canvas>
@@ -322,28 +338,7 @@
                                         </div>
                                     </div>
                                     
-                                    <!-- Calibration Controls for Monitoring View -->
-                                    <div class="monitoring-calibration">
-                                        <h3>Control de Calibración</h3>
-                                        <div class="calibration-buttons-monitoring">
-                                            <button id="zeroBtnMonitoring" class="btn btn-calibration zero" title="Calibración Zero">
-                                                <i class="fas fa-circle"></i>
-                                                ZERO
-                                            </button>
-                                            <button id="spanBtnMonitoring" class="btn btn-calibration span" title="Calibración Span">
-                                                <i class="fas fa-adjust"></i>
-                                                SPAN
-                                            </button>
-                                            <button id="startGasBtnMonitoring" class="btn btn-calibration start-gas" title="Inicio Gas Patrón">
-                                                <i class="fas fa-play-circle"></i>
-                                                INICIO
-                                            </button>
-                                            <button id="endInjectionBtnMonitoring" class="btn btn-calibration end-injection" title="Fin Inyección Gas">
-                                                <i class="fas fa-stop-circle"></i>
-                                                FIN
-                                            </button>
-                                        </div>
-                                    </div>
+                               
                                     
                                     <div class="monitoring-content">
                                         <!-- Gas Cards for Monitoring View -->

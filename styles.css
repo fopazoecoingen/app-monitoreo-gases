@@ -457,6 +457,8 @@ body {
     min-height: 0;
     flex: 1;
     display: flex;
+    width: 100%;
+    box-sizing: border-box;
     flex-direction: column;
 }
 
@@ -1317,9 +1319,10 @@ body {
 /* Charts Styles */
 .charts-container {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 15px;
     padding: 20px;
+    width: 100%;
 }
 
 .chart-section {
@@ -1341,6 +1344,8 @@ body {
     margin-bottom: 15px;
     padding-bottom: 10px;
     border-bottom: 1px solid #4a4a4a;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .chart-header h3 {
@@ -1358,10 +1363,40 @@ body {
     border-radius: 4px;
 }
 
+.chart-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.reference-input {
+    width: 80px;
+    padding: 4px 6px;
+    background: #3a3a3a;
+    border: 1px solid #555;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 11px;
+    text-align: center;
+}
+
+.reference-input:focus {
+    outline: none;
+    border-color: #00b0ff;
+    box-shadow: 0 0 0 2px rgba(0, 176, 255, 0.2);
+}
+
+.btn-sm {
+    padding: 4px 8px;
+    font-size: 10px;
+    min-height: 24px;
+}
+
 .chart-wrapper {
     position: relative;
-    height: 200px;
+    height: 180px;
     width: 100%;
+    min-height: 150px;
 }
 
 .chart-wrapper canvas {
@@ -1569,7 +1604,72 @@ body {
     }
     
     .charts-container {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 12px;
+        padding: 15px;
+    }
+    
+    .chart-wrapper {
+        height: 160px;
+        min-height: 140px;
+    }
+}
+
+/* Responsive charts for mobile */
+@media (max-width: 768px) {
+    .charts-container {
         grid-template-columns: 1fr;
+        gap: 10px;
+        padding: 10px;
+    }
+    
+    .chart-wrapper {
+        height: 200px;
+        min-height: 180px;
+    }
+    
+    .chart-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .chart-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .reference-input {
+        width: 60px;
+        font-size: 10px;
+    }
+    
+    .btn-sm {
+        padding: 3px 6px;
+        font-size: 9px;
+        min-height: 20px;
+    }
+}
+
+/* Responsive charts for very small screens */
+@media (max-width: 480px) {
+    .charts-container {
+        padding: 5px;
+        gap: 8px;
+    }
+    
+    .chart-wrapper {
+        height: 180px;
+        min-height: 160px;
+    }
+    
+    .chart-header h3 {
+        font-size: 14px;
+    }
+    
+    .chart-header .unit {
+        font-size: 10px;
+        padding: 2px 6px;
     }
 }
 
@@ -2510,7 +2610,7 @@ body {
 
 .monitoring-gas-cards {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 8px;
     margin-bottom: 16px;
 }
@@ -2591,6 +2691,31 @@ body {
     color: #aaa;
 }
 
+.monitoring-gas-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.monitoring-gas-actions .btn {
+    padding: 4px 6px;
+    font-size: 9px;
+    min-height: 24px;
+    border-radius: 4px;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.monitoring-gas-actions .btn i {
+    font-size: 8px;
+    margin-right: 2px;
+}
+
 .monitoring-charts {
     background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
     border: 1px solid #4a4a4a;
@@ -2641,7 +2766,17 @@ body {
     
     .monitoring-gas-cards {
         gap: 6px;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+    
+    .monitoring-gas-actions {
+        gap: 3px;
+    }
+    
+    .monitoring-gas-actions .btn {
+        padding: 3px 4px;
+        font-size: 8px;
+        min-height: 22px;
     }
     
     .monitoring-gas-card {
@@ -2696,6 +2831,13 @@ body {
     
     .monitoring-gas-cards {
         gap: 6px;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+    
+    .monitoring-gas-actions .btn {
+        padding: 2px 3px;
+        font-size: 7px;
+        min-height: 20px;
     }
     
     .monitoring-gas-card {

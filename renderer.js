@@ -100,6 +100,14 @@ let chartData = {
     co2: []
 };
 
+// Reference lines for each gas
+let referenceLines = {
+    o2: null,
+    co: null,
+    ch4: null,
+    co2: null
+};
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
@@ -161,6 +169,9 @@ function setupEventListeners() {
     if (monitorCOMainCheckbox) monitorCOMainCheckbox.addEventListener('change', handleGasSelectionChange);
     if (monitorCH4MainCheckbox) monitorCH4MainCheckbox.addEventListener('change', handleGasSelectionChange);
     if (monitorCO2MainCheckbox) monitorCO2MainCheckbox.addEventListener('change', handleGasSelectionChange);
+    
+    // Reference line controls
+    setupReferenceControls();
     
     // Monitoring view handlers
     if (stopMonitoringBtn) stopMonitoringBtn.addEventListener('click', stopMonitoringFromView);
@@ -775,6 +786,101 @@ function showMeasurementCompletedNotification(data) {
     }, 5000);
 }
 
+// Reference Line Functions
+function setupReferenceControls() {
+    // Load saved reference values
+    loadReferenceValues();
+    
+    // Setup event listeners for reference controls
+    const referenceControls = [
+        { input: 'o2Reference', button: 'setO2Reference', gas: 'o2' },
+        { input: 'coReference', button: 'setCOReference', gas: 'co' },
+        { input: 'ch4Reference', button: 'setCH4Reference', gas: 'ch4' },
+        { input: 'co2Reference', button: 'setCO2Reference', gas: 'co2' }
+    ];
+    
+    referenceControls.forEach(control => {
+        const input = document.getElementById(control.input);
+        const button = document.getElementById(control.button);
+        
+        if (input && button) {
+            button.addEventListener('click', () => setReferenceLine(control.gas, input.value));
+            input.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    setReferenceLine(control.gas, input.value);
+                }
+            });
+        }
+    });
+}
+
+function setReferenceLine(gas, value) {
+    if (!value || isNaN(parseFloat(value))) {
+        showToast('warning', 'Ingresa un valor válido para la línea de referencia');
+        return;
+    }
+    
+    const refValue = parseFloat(value);
+    referenceLines[gas] = refValue;
+    
+    // Save to localStorage
+    localStorage.setItem(`reference_${gas}`, refValue.toString());
+    
+    // Update chart with reference line
+    updateChartWithReference(gas, refValue);
+    
+    showToast('success', `Línea de referencia ${gas.toUpperCase()} establecida en ${refValue}`);
+}
+
+function loadReferenceValues() {
+    const gases = ['o2', 'co', 'ch4', 'co2'];
+    
+    gases.forEach(gas => {
+        const savedValue = localStorage.getItem(`reference_${gas}`);
+        if (savedValue) {
+            referenceLines[gas] = parseFloat(savedValue);
+            const input = document.getElementById(`${gas}Reference`);
+            if (input) {
+                input.value = savedValue;
+            }
+        }
+    });
+}
+
+function updateChartWithReference(gas, refValue) {
+    const chartMap = {
+        'o2': o2Chart,
+        'co': coChart,
+        'ch4': ch4Chart,
+        'co2': co2Chart
+    };
+    
+    const chart = chartMap[gas];
+    if (!chart) return;
+    
+    // Remove existing reference line if any
+    const existingRefIndex = chart.data.datasets.findIndex(dataset => dataset.label.includes('Referencia'));
+    if (existingRefIndex !== -1) {
+        chart.data.datasets.splice(existingRefIndex, 1);
+    }
+    
+    // Add reference line dataset
+    const refDataset = {
+        label: `Referencia ${gas.toUpperCase()}`,
+        data: new Array(chart.data.labels.length).fill(refValue),
+        borderColor: '#ff9800',
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        borderDash: [5, 5],
+        pointRadius: 0,
+        fill: false,
+        tension: 0
+    };
+    
+    chart.data.datasets.push(refDataset);
+    chart.update('none');
+}
+
 // Chart Functions
 function initializeCharts() {
     // Configuración común para todos los gráficos
@@ -839,6 +945,11 @@ function initializeCharts() {
             }
         }
     });
+    
+    // Add reference line if exists
+    if (referenceLines.o2 !== null) {
+        updateChartWithReference('o2', referenceLines.o2);
+    }
 
     // Gráfico CO
     const coCtx = document.getElementById('coChart').getContext('2d');
@@ -871,6 +982,11 @@ function initializeCharts() {
             }
         }
     });
+    
+    // Add reference line if exists
+    if (referenceLines.co !== null) {
+        updateChartWithReference('co', referenceLines.co);
+    }
 
     // Gráfico CH₄
     const ch4Ctx = document.getElementById('ch4Chart').getContext('2d');
@@ -903,6 +1019,11 @@ function initializeCharts() {
             }
         }
     });
+    
+    // Add reference line if exists
+    if (referenceLines.ch4 !== null) {
+        updateChartWithReference('ch4', referenceLines.ch4);
+    }
 
     // Gráfico CO₂
     const co2Ctx = document.getElementById('co2Chart').getContext('2d');
@@ -935,6 +1056,11 @@ function initializeCharts() {
             }
         }
     });
+    
+    // Add reference line if exists
+    if (referenceLines.co2 !== null) {
+        updateChartWithReference('co2', referenceLines.co2);
+    }
 
 }
 
@@ -962,30 +1088,26 @@ function updateCharts(data) {
         chartData.co2.shift();
     }
 
-    // Actualizar gráficos individuales
-    if (o2Chart && data.o2 !== undefined) {
-        o2Chart.data.labels = chartData.labels;
-        o2Chart.data.datasets[0].data = chartData.o2;
-        o2Chart.update('none');
-    }
+    // Actualizar gráficos individuales con líneas de referencia
+    updateChartWithDataAndReference('o2', o2Chart, chartData.o2, data.o2);
+    updateChartWithDataAndReference('co', coChart, chartData.co, data.co);
+    updateChartWithDataAndReference('ch4', ch4Chart, chartData.ch4, data.ch4);
+    updateChartWithDataAndReference('co2', co2Chart, chartData.co2, data.co2);
+}
 
-    if (coChart && data.co !== undefined) {
-        coChart.data.labels = chartData.labels;
-        coChart.data.datasets[0].data = chartData.co;
-        coChart.update('none');
+function updateChartWithDataAndReference(gas, chart, dataArray, newData) {
+    if (!chart || newData === undefined) return;
+    
+    chart.data.labels = chartData.labels;
+    chart.data.datasets[0].data = dataArray;
+    
+    // Update reference line if it exists
+    const refIndex = chart.data.datasets.findIndex(dataset => dataset.label.includes('Referencia'));
+    if (refIndex !== -1 && referenceLines[gas] !== null) {
+        chart.data.datasets[refIndex].data = new Array(chartData.labels.length).fill(referenceLines[gas]);
     }
-
-    if (ch4Chart && data.ch4 !== undefined) {
-        ch4Chart.data.labels = chartData.labels;
-        ch4Chart.data.datasets[0].data = chartData.ch4;
-        ch4Chart.update('none');
-    }
-
-    if (co2Chart && data.co2 !== undefined) {
-        co2Chart.data.labels = chartData.labels;
-        co2Chart.data.datasets[0].data = chartData.co2;
-        co2Chart.update('none');
-    }
+    
+    chart.update('none');
 
 }
 
@@ -1167,12 +1289,79 @@ function createMonitoringGasCards(gasConfig) {
                 <i class="fas fa-arrow-up"></i>
                 <span>Estable</span>
             </div>
+            <div class="monitoring-gas-actions">
+                <button class="btn btn-calibration zero" data-gas="${gas.id}" data-action="ZERO">
+                    <i class="fas fa-circle"></i> ZERO
+                </button>
+                <button class="btn btn-calibration span" data-gas="${gas.id}" data-action="SPAN">
+                    <i class="fas fa-adjust"></i> SPAN
+                </button>
+                <button class="btn btn-calibration start-gas" data-gas="${gas.id}" data-action="INICIO">
+                    <i class="fas fa-play-circle"></i> INICIO
+                </button>
+                <button class="btn btn-calibration end-injection" data-gas="${gas.id}" data-action="FIN">
+                    <i class="fas fa-stop-circle"></i> FIN
+                </button>
+            </div>
         `;
         
         if (monitoringGasCardsContainer) {
             monitoringGasCardsContainer.appendChild(gasCard);
         }
     });
+
+    // Delegación de eventos para botones por gas
+    if (monitoringGasCardsContainer) {
+        monitoringGasCardsContainer.addEventListener('click', async (e) => {
+            const target = e.target.closest('button[data-gas][data-action]');
+            if (!target) return;
+            const gasId = target.getAttribute('data-gas');
+            const action = target.getAttribute('data-action');
+            const gasMap = {
+                'monitoring-o2': 'o2',
+                'monitoring-co': 'co',
+                'monitoring-ch4': 'ch4',
+                'monitoring-co2': 'co2'
+            };
+            const gas = gasMap[gasId];
+            if (!gas) return;
+            try {
+                showLoading('Marcando evento...');
+                await window.electronAPI.markGasEvent(gas, action);
+                showToast('success', `Evento ${action} (${gas.toUpperCase()}) marcado`);
+            } catch (err) {
+                showToast('error', `No se pudo marcar evento: ${err.message}`);
+            } finally {
+                hideLoading();
+            }
+        }, { once: true });
+        // Re-adjuntar al cambiar vista
+        monitoringGasCardsContainer.addEventListener('click', (e) => {
+            const target = e.target.closest('button[data-gas][data-action]');
+            if (!target) return;
+            const gasId = target.getAttribute('data-gas');
+            const action = target.getAttribute('data-action');
+            const gasMap = {
+                'monitoring-o2': 'o2',
+                'monitoring-co': 'co',
+                'monitoring-ch4': 'ch4',
+                'monitoring-co2': 'co2'
+            };
+            const gas = gasMap[gasId];
+            if (!gas) return;
+            (async () => {
+                try {
+                    showLoading('Marcando evento...');
+                    await window.electronAPI.markGasEvent(gas, action);
+                    showToast('success', `Evento ${action} (${gas.toUpperCase()}) marcado`);
+                } catch (err) {
+                    showToast('error', `No se pudo marcar evento: ${err.message}`);
+                } finally {
+                    hideLoading();
+                }
+            })();
+        });
+    }
 }
 
 function createMonitoringCharts(gasConfig) {
