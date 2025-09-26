@@ -9,7 +9,22 @@ class BlobSender {
         this.internetChecker = new InternetChecker();
         this.blobService = new BlobService();
         this.dbManager = new DatabaseManager();
-        this.configPath = path.join(process.cwd(), 'blob-config.json');
+        
+        // Detectar si está en modo empaquetado
+        const isPackaged = process.env.NODE_ENV === 'production' || 
+                          (process.mainModule && process.mainModule.filename.indexOf('app.asar') !== -1) ||
+                          process.resourcesPath;
+        
+        if (isPackaged) {
+            // En modo empaquetado, buscar en el directorio de recursos
+            this.configPath = path.join(process.resourcesPath || __dirname, 'blob-config.json');
+        } else {
+            // En modo desarrollo, buscar en el directorio raíz del proyecto
+            this.configPath = path.join(__dirname, '..', '..', 'blob-config.json');
+        }
+        
+        console.log('🔍 Ruta de configuración detectada:', this.configPath);
+        console.log('🔍 Modo empaquetado:', isPackaged);
         this.isInitialized = false;
     }
 
@@ -55,10 +70,40 @@ class BlobSender {
             
             if (!configResult.success) {
                 console.log('❌ Error cargando configuración de blobs');
-                return { 
-                    success: false, 
-                    error: `Error cargando configuración: ${configResult.error}` 
+                console.log('🔧 Intentando crear configuración por defecto...');
+                
+                // Crear configuración por defecto
+                const defaultConfig = {
+                    baseUrl: "https://ecoingen-api-produccion.azurewebsites.net",
+                    apiKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJsYWJvcmF0b3Jpb0BlY29pbmdlbi5jb20iLCJyb2wiOiJsYWJvcmF0b3JpbyIsIkxpc3RhRW1wcmVzYXMiOiJ7XCIyXCI6W3tcIklkXCI6MSxcIkRlc2NyaXBjaW9uXCI6XCJEUzEzOFwifSx7XCJJZFwiOjIsXCJEZXNjcmlwY2lvblwiOlwiU0lOQURFUiBNRU5TVUFMXCJ9LHtcIklkXCI6MyxcIkRlc2NyaXBjaW9uXCI6XCJTSU5BREVSIEFOVUFMXCJ9LHtcIklkXCI6NCxcIkRlc2NyaXBjaW9uXCI6XCJTSU5BREVSIEFOVUFMXCJ9LHtcIklkXCI6NSxcIkRlc2NyaXBjaW9uXCI6XCJERUNMQVJBQ0lPTiBKVVJBREFcIn0se1wiSWRcIjo2LFwiRGVzY3JpcGNpb25cIjpcIkNBVEFTVFJPIFNJU0FUXCJ9LHtcIklkXCI6NyxcIkRlc2NyaXBjaW9uXCI6XCJSRVNJRFVPT1MgUEVMSUdST1NPUyAoU0lEUkVQKVwifSx7XCJJZFwiOjgsXCJEZXNjcmlwY2lvblwiOlwiREVTRU1QRVxcdTAwRDFPIEFNQklFTlRBTCBFTVBSRVNBUklBTCAoREFFKVwifSx7XCJJZFwiOjEwLFwiRGVzY3JpcGNpb25cIjpcIlJFU1BPTlNBQklMSURBRCBERUwgUFJPRFVDVE9SIChMRVkgUkVQKVwifSx7XCJJZFwiOjExLFwiRGVzY3JpcGNpb25cIjpcIlJFUE9SVEUgVFJJTUVTVFJBTFwifSx7XCJJZFwiOjEyLFwiRGVzY3JpcGNpb25cIjpcIkhVRUxMQSBDQVJCT05PIC0gUExBTiAxXCJ9LHtcIklkXCI6MTUsXCJEZXNjcmlwY2lvblwiOlwiQkFMQU5DRSBOQUNJT05BTCBFTkVSR0lBXCJ9LHtcIklkXCI6MTgsXCJEZXNjcmlwY2lvblwiOlwiQVVESVRPUklBXCJ9XX0iLCJJZFRyYW5zcG9ydGlzdGEiOiIwIiwiSWQiOiI0NyIsIm5iZiI6MTc1ODcyOTA4MiwiemV4cCI6MTc1ODgxNTQ4MiwiaXNzIjoiaHR0cHM6Ly93d3cuZWNvaW5nZW4uY2wvIiwiYXVkIjoiRWNvaW5nZW4ifQ.Zcw4cUYQQUkS_PNskYcnn-75IXRketDu6Bf8rrMIkfI",
+                    endpoint: "/api/Storage/uploadExcelMedicionesSoftware",
+                    containerName: "mediciones",
+                    headers: {
+                        "accept": "*/*",
+                        "X-Source": "ModbusAnalyzer",
+                        "X-Version": "1.0"
+                    }
                 };
+                
+                const createResult = await this.blobService.saveConfigToFile(defaultConfig, this.configPath);
+                if (createResult.success) {
+                    console.log('✅ Configuración por defecto creada');
+                    // Intentar cargar la configuración recién creada
+                    const reloadResult = await this.blobService.loadConfigFromFile(this.configPath);
+                    if (reloadResult.success) {
+                        console.log('✅ Configuración cargada exitosamente');
+                    } else {
+                        return { 
+                            success: false, 
+                            error: `Error cargando configuración: ${reloadResult.error}` 
+                        };
+                    }
+                } else {
+                    return { 
+                        success: false, 
+                        error: `Error creando configuración: ${createResult.error}` 
+                    };
+                }
             }
 
             console.log('✅ Configuración de blobs cargada');

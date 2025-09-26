@@ -57,6 +57,7 @@ class DatabaseManager {
                     resolve();
                 });
             } else {
+                this.isConnected = false;
                 resolve();
             }
         });
@@ -71,9 +72,6 @@ class DatabaseManager {
             await this.connect();
         }
 
-        // Migrar tabla lecturas_detalladas si es necesario
-        await this.migrateLecturasDetalladasIfNeeded();
-
         return new Promise((resolve, reject) => {
             // Crear tabla medicion
             const createMedicionTable = `
@@ -85,6 +83,7 @@ class DatabaseManager {
                     observaciones TEXT,
                     tiempo_inicio DATETIME,
                     tiempo_fin DATETIME,
+                    enviado_plataforma INTEGER DEFAULT 0,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             `;
@@ -105,26 +104,32 @@ class DatabaseManager {
                 )
             `;
 
+            console.log('🔍 Ejecutando CREATE TABLE medicion...');
             this.db.run(createMedicionTable, (err) => {
                 if (err) {
-                    console.error('Error creando tabla medicion:', err.message);
+                    console.error('❌ Error creando tabla medicion:', err.message);
+                    console.error('❌ Error completo:', err);
                     reject(err);
                     return;
                 }
 
-                console.log('Tabla medicion creada/verificada exitosamente');
+                console.log('✅ Tabla medicion creada/verificada exitosamente');
 
                 // Verificar si la tabla medicion necesita migración para agregar campos de tiempo
                 this.migrateMedicionTableIfNeeded().then(() => {
-                    // Crear tabla de lecturas detalladas directamente
+                    // Verificar si necesita agregar columna enviado_plataforma
+                    this.addEnviadoPlataformaFieldIfNeeded().then(() => {
+                        // Crear tabla de lecturas detalladas directamente
+                    console.log('🔍 Ejecutando CREATE TABLE lecturas_detalladas...');
                     this.db.run(createLecturasDetalladasTable, (err) => {
                         if (err) {
-                            console.error('Error creando tabla lecturas_detalladas:', err.message);
+                            console.error('❌ Error creando tabla lecturas_detalladas:', err.message);
+                            console.error('❌ Error completo:', err);
                             reject(err);
                             return;
                         }
 
-                        console.log('Tabla lecturas_detalladas creada exitosamente');
+                        console.log('✅ Tabla lecturas_detalladas creada exitosamente');
 
                         // Verificar y agregar campo CO2 si no existe
                         this.addCo2FieldIfNeeded()
@@ -138,6 +143,7 @@ class DatabaseManager {
                                     .catch(reject);
                             })
                             .catch(reject);
+                        });
                     });
                 }).catch(reject);
             });
@@ -180,6 +186,35 @@ class DatabaseManager {
                     });
                 } else {
                     console.log('Tabla medicion ya tiene campos de tiempo');
+                    resolve();
+                }
+            });
+        });
+    }
+
+    async addEnviadoPlataformaFieldIfNeeded() {
+        return new Promise((resolve, reject) => {
+            this.db.all("PRAGMA table_info(medicion)", (err, columns) => {
+                if (err) {
+                    console.error('Error verificando columnas de medicion para enviado_plataforma:', err.message);
+                    reject(err);
+                    return;
+                }
+                
+                const hasEnviadoPlataforma = columns.some(col => col.name === 'enviado_plataforma');
+                if (!hasEnviadoPlataforma) {
+                    console.log('Migrando tabla medicion para agregar campo enviado_plataforma...');
+                    this.db.run('ALTER TABLE medicion ADD COLUMN enviado_plataforma INTEGER DEFAULT 0', (err) => {
+                        if (err) {
+                            console.error('Error ejecutando migración enviado_plataforma:', err.message);
+                            reject(err);
+                        } else {
+                            console.log('Campo enviado_plataforma agregado exitosamente a medicion');
+                            resolve();
+                        }
+                    });
+                } else {
+                    console.log('Tabla medicion ya tiene campo enviado_plataforma');
                     resolve();
                 }
             });
@@ -295,9 +330,12 @@ class DatabaseManager {
         }
 
         const now = new Date();
-        // Usar zona horaria local en lugar de UTC
-        const fecha = now.toLocaleDateString('en-CA'); // Formato YYYY-MM-DD
-        const hora = now.toLocaleTimeString('en-GB', { hour12: false }); // Formato HH:MM:SS
+        // Usar zona horaria local correcta
+        const fecha = now.toLocaleDateString('es-CL'); // Formato DD/MM/YYYY para Chile
+        const hora = now.toLocaleTimeString('es-CL', { 
+            hour12: false, 
+            timeZone: 'America/Santiago' 
+        }); // Formato HH:MM:SS en zona horaria de Chile
 
         return new Promise((resolve, reject) => {
             // Guardar referencia a la base de datos
@@ -322,18 +360,17 @@ class DatabaseManager {
                 if (err) {
                     console.error('Error guardando medición:', err.message);
                     reject(err);
-                    return;
+                } else {
+                    const medicionId = this.lastID;
+                    console.log(`Medición guardada con ID: ${medicionId}`);
+
+                    resolve({
+                        success: true,
+                        medicion_id: medicionId,
+                        fecha: fecha,
+                        hora: hora
+                    });
                 }
-
-                const medicionId = this.lastID;
-                console.log(`Medición guardada con ID: ${medicionId}`);
-
-                resolve({
-                    success: true,
-                    medicion_id: medicionId,
-                    fecha: fecha,
-                    hora: hora
-                });
             });
         });
     }
@@ -359,8 +396,11 @@ class DatabaseManager {
 
             // Usar la misma fecha/hora que la medición principal
             const now = new Date();
-            const fecha = now.toLocaleDateString('en-CA');
-            const hora = now.toLocaleTimeString('en-GB', { hour12: false });
+            const fecha = now.toLocaleDateString('es-CL');
+            const hora = now.toLocaleTimeString('es-CL', { 
+                hour12: false, 
+                timeZone: 'America/Santiago' 
+            });
             const created_at = `${fecha} ${hora}`;
 
             const params = [
@@ -413,11 +453,12 @@ class DatabaseManager {
                 ORDER BY m.created_at DESC
             `;
 
-            this.db.all(query, [], (err, rows) => {
+            this.db.all(query, (err, rows) => {
                 if (err) {
                     console.error('Error obteniendo mediciones:', err.message);
                     reject(err);
                 } else {
+                    console.log(`📊 Obtenidas ${rows.length} mediciones de la base de datos`);
                     resolve({
                         success: true,
                         data: rows
@@ -454,6 +495,7 @@ class DatabaseManager {
                     console.error('Error obteniendo lecturas detalladas:', err.message);
                     reject(err);
                 } else {
+                    console.log(`📊 Obtenidas ${rows.length} lecturas detalladas para medición ${medicionId}`);
                     resolve({
                         success: true,
                         data: rows
@@ -510,6 +552,7 @@ class DatabaseManager {
                     console.error('Error obteniendo mediciones por rango de fechas:', err.message);
                     reject(err);
                 } else {
+                    console.log(`📊 Obtenidas ${rows.length} mediciones por rango de fechas`);
                     resolve({
                         success: true,
                         data: rows
@@ -675,7 +718,7 @@ class DatabaseManager {
 
             const query = 'UPDATE medicion SET enviado_plataforma = 1 WHERE id = ?';
             
-            this.db.run(query, [medicionId], function(err) {
+            this.db.run(query, [medicionId], (err) => {
                 if (err) {
                     console.error('Error marcando medición como enviada:', err.message);
                     resolve({ success: false, error: err.message });

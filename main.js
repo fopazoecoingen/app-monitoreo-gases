@@ -281,9 +281,12 @@ async function readAnalyzerData() {
 async function saveToExcel(data, eventType = 'Normal') {
     try {
         const now = new Date();
-        // Usar zona horaria local en lugar de UTC
-        const fecha = now.toLocaleDateString('en-CA'); // Formato YYYY-MM-DD
-        const hora = now.toLocaleTimeString('en-GB', { hour12: false }); // Formato HH:MM:SS
+        // Usar zona horaria local correcta para Chile
+        const fecha = now.toLocaleDateString('es-CL'); // Formato DD/MM/YYYY para Chile
+        const hora = now.toLocaleTimeString('es-CL', { 
+            hour12: false, 
+            timeZone: 'America/Santiago' 
+        }); // Formato HH:MM:SS en zona horaria de Chile
 
         // Usar archivo de desarrollo si estamos en modo desarrollo
         const isDevelopment = process.env.NODE_ENV === 'development' || process.env.npm_lifecycle_event === 'start';
@@ -437,9 +440,23 @@ function createWindow() {
     });
 
     mainWindow.loadFile('index.html');
+    
+    // Abrir DevTools automáticamente para debugging
+    mainWindow.webContents.openDevTools();
 
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
+    });
+
+    // Atajo de teclado para abrir/cerrar DevTools
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+        if (input.control && input.key.toLowerCase() === 'i') {
+            if (mainWindow.webContents.isDevToolsOpened()) {
+                mainWindow.webContents.closeDevTools();
+            } else {
+                mainWindow.webContents.openDevTools();
+            }
+        }
     });
 
     mainWindow.on('closed', async () => {
@@ -623,16 +640,39 @@ ipcMain.handle('start-reading', async () => {
         measurementData = []; // Limpiar datos anteriores
         
                 // Crear nueva medición en la base de datos
+                console.log('🔍 Verificando estado de la base de datos...');
+                console.log('📊 databaseManager existe:', !!databaseManager);
+                console.log('📊 databaseManager.isDatabaseConnected():', databaseManager ? databaseManager.isDatabaseConnected() : 'N/A');
+                
                 if (databaseManager && databaseManager.isDatabaseConnected()) {
-                    const dbResult = await databaseManager.saveGasReading(
-                        { o2: null, co: null, ch4: null }, // Datos vacíos iniciales
-                        currentEventType,
-                        'Iniciando sesión de monitoreo',
-                        now.toLocaleString('sv-SE'), // tiempo_inicio (formato YYYY-MM-DD HH:mm:ss)
-                        null // tiempo_fin (se actualizará al terminar)
-                    );
-                    currentMeasurementId = dbResult.medicion_id;
-                    console.log(`Nueva medición iniciada con ID: ${currentMeasurementId}`);
+                    try {
+                        console.log('🔍 Creando nueva medición en la base de datos...');
+                        const dbResult = await databaseManager.saveGasReading(
+                            { o2: null, co: null, ch4: null }, // Datos vacíos iniciales
+                            currentEventType,
+                            'Iniciando sesión de monitoreo',
+                            now.toLocaleString('es-CL', { timeZone: 'America/Santiago' }), // tiempo_inicio (formato DD/MM/YYYY HH:mm:ss)
+                            null // tiempo_fin (se actualizará al terminar)
+                        );
+                        console.log('📊 Resultado de saveGasReading:', dbResult);
+                        
+                        if (dbResult && dbResult.success && dbResult.medicion_id) {
+                            currentMeasurementId = dbResult.medicion_id;
+                            console.log(`✅ Nueva medición iniciada con ID: ${currentMeasurementId}`);
+                        } else {
+                            console.error('❌ Error: dbResult no contiene medicion_id válido:', dbResult);
+                            currentMeasurementId = null;
+                        }
+                    } catch (dbError) {
+                        console.error('❌ Error creando medición en base de datos:', dbError);
+                        console.error('❌ Stack trace:', dbError.stack);
+                        currentMeasurementId = null;
+                    }
+                } else {
+                    console.log('⚠️ Base de datos no conectada, no se creará medición');
+                    console.log('⚠️ databaseManager:', databaseManager);
+                    console.log('⚠️ isDatabaseConnected:', databaseManager ? databaseManager.isDatabaseConnected() : 'N/A');
+                    currentMeasurementId = null;
                 }
         
         // También crear entrada en Excel
@@ -641,6 +681,7 @@ ipcMain.handle('start-reading', async () => {
             currentEventType
         );
         
+        console.log('📤 Enviando measurement-started al frontend con measurementId:', currentMeasurementId);
         mainWindow.webContents.send('measurement-started', {
             measurementId: currentMeasurementId,
             startTime: now,
@@ -666,13 +707,28 @@ ipcMain.handle('start-reading', async () => {
                     // Guardar lectura detallada en la base de datos
                     if (databaseManager && databaseManager.isDatabaseConnected() && currentMeasurementId) {
                         const ahora = new Date();
-                        const tiempoRelativo = ahora.toLocaleString('sv-SE'); // Timestamp local (YYYY-MM-DD HH:mm:ss)
+                        const tiempoRelativo = ahora.toLocaleString('es-CL', { timeZone: 'America/Santiago' }); // Timestamp local (DD/MM/YYYY HH:mm:ss)
+                        
+                        console.log('🔍 Guardando lectura detallada:', {
+                            medicionId: currentMeasurementId,
+                            data: data,
+                            tiempoRelativo: tiempoRelativo,
+                            evento: currentEventType
+                        });
                         
                         try {
-                            await databaseManager.saveDetailedReading(currentMeasurementId, data, tiempoRelativo, currentEventType);
+                            const result = await databaseManager.saveDetailedReading(currentMeasurementId, data, tiempoRelativo, currentEventType);
+                            console.log('✅ Lectura detallada guardada:', result);
                         } catch (error) {
-                            console.error('Error guardando lectura detallada:', error);
+                            console.error('❌ Error guardando lectura detallada:', error);
+                            console.error('❌ Stack trace:', error.stack);
                         }
+                    } else {
+                        console.log('⚠️ No se puede guardar lectura detallada:', {
+                            databaseManager: !!databaseManager,
+                            isConnected: databaseManager ? databaseManager.isDatabaseConnected() : false,
+                            currentMeasurementId: currentMeasurementId
+                        });
                     }
             
             // Actualizar la medición actual en la base de datos con los datos promedio
@@ -687,17 +743,18 @@ ipcMain.handle('start-reading', async () => {
             // También actualizar Excel con datos en tiempo real
             const result = await saveToExcel(data, currentEventType);
             
-            // Enviar actualización al frontend
-            mainWindow.webContents.send('data-update', {
-                ...data,
-                fecha: result.fecha,
-                hora: result.hora,
-                eventType: result.eventType,
-                measurementId: currentMeasurementId,
-                sessionDuration: measurementStartTime ? 
-                    Math.round((new Date() - measurementStartTime) / 1000) : 0,
-                totalReadings: measurementData.length
-            });
+        // Enviar actualización al frontend
+        console.log('📤 Enviando data-update al frontend con measurementId:', currentMeasurementId);
+        mainWindow.webContents.send('data-update', {
+            ...data,
+            fecha: result.fecha,
+            hora: result.hora,
+            eventType: result.eventType,
+            measurementId: currentMeasurementId,
+            sessionDuration: measurementStartTime ? 
+                Math.round((new Date() - measurementStartTime) / 1000) : 0,
+            totalReadings: measurementData.length
+        });
             
         } catch (error) {
             console.error('Error en lectura de datos:', error);
@@ -748,7 +805,7 @@ ipcMain.handle('stop-reading', async () => {
                                 return;
                             }
                             
-                            db.run(updateQuery, [now.toLocaleString('sv-SE'), observation, currentMeasurementId], (err) => {
+                            db.run(updateQuery, [now.toLocaleString('es-CL', { timeZone: 'America/Santiago' }), observation, currentMeasurementId], (err) => {
                                 if (err) {
                                     console.error('Error actualizando tiempo de fin y observaciones:', err.message);
                                     reject(err);
