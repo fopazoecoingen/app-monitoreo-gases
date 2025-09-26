@@ -85,6 +85,10 @@
                     
                     <div class="menu-section">
                         <div class="menu-title">Control</div>
+                        <a href="#" class="menu-item" data-tab="valves">
+                            <i class="fas fa-tint"></i>
+                            <span>Control de Válvulas</span>
+                        </a>
                         <a href="#" class="menu-item" data-tab="monitoring">
                             <i class="fas fa-play"></i>
                             <span>Monitoreo</span>
@@ -300,6 +304,58 @@
                                             </div>
                                         </div>
                                         
+                                    </div>
+                                </div>
+                                
+                                <!-- Valves Control Tab -->
+                                <div class="tab-pane" id="valves-tab">
+                                    <div class="panel-header">
+                                        <i class="fas fa-tint"></i>
+                                        <h2>Control de Válvulas</h2>
+                                    </div>
+                                    
+                                    <div class="valves-control-container">
+                                        <div class="valves-header">
+                                            <div class="valves-info">
+                                                <h3>Sistema de Control de Válvulas</h3>
+                                                <p>Controla el estado de las 12 válvulas del sistema</p>
+                                            </div>
+                                            <div class="valves-actions">
+                                                <button id="allValvesOn" class="btn btn-success">
+                                                    <i class="fas fa-power-off"></i>
+                                                    Todas ON
+                                                </button>
+                                                <button id="allValvesOff" class="btn btn-danger">
+                                                    <i class="fas fa-stop"></i>
+                                                    Todas OFF
+                                                </button>
+                                                <button id="resetValves" class="btn btn-secondary">
+                                                    <i class="fas fa-undo"></i>
+                                                    Reset
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="valves-grid" id="valvesGrid">
+                                            <!-- Las 12 válvulas se generarán dinámicamente aquí -->
+                                        </div>
+                                        
+                                        <div class="valves-status">
+                                            <div class="status-summary">
+                                                <div class="status-item">
+                                                    <span class="status-label">Válvulas Activas:</span>
+                                                    <span class="status-value" id="activeValvesCount">0</span>
+                                                </div>
+                                                <div class="status-item">
+                                                    <span class="status-label">Válvulas Inactivas:</span>
+                                                    <span class="status-value" id="inactiveValvesCount">12</span>
+                                                </div>
+                                                <div class="status-item">
+                                                    <span class="status-label">Estado General:</span>
+                                                    <span class="status-value" id="overallStatus">Inactivo</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 

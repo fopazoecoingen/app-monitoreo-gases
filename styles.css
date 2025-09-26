@@ -4559,3 +4559,517 @@ input[type="checkbox"] {
     padding: 2px 0 !important;
     margin-bottom: 2px !important;
 }
+
+/* ===== CONTROL DE VÁLVULAS ===== */
+.valves-control-container {
+    padding: 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.valves-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: linear-gradient(135deg, #2c2c2c 0%, #3a3a3a 100%);
+    border-radius: 12px;
+    border: 1px solid #4a4a4a;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.valves-info h3 {
+    color: #ffffff;
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.valves-info p {
+    color: #b0b0b0;
+    margin: 0;
+    font-size: 14px;
+}
+
+.valves-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.valves-actions .btn {
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 120px;
+    justify-content: center;
+}
+
+.valves-actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.valves-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    flex: 1;
+    padding: 16px;
+    background: #1e1e1e;
+    border-radius: 12px;
+    border: 1px solid #4a4a4a;
+    overflow-y: auto;
+    max-height: 65vh;
+    min-height: 400px;
+}
+
+.valve-card {
+    background: linear-gradient(145deg, #2c2c2c 0%, #3a3a3a 100%);
+    border-radius: 10px;
+    padding: 16px;
+    border: 2px solid #4a4a4a;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.valve-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+    border-color: #6a6a6a;
+}
+
+.valve-card.active {
+    border-color: #4CAF50;
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+}
+
+.valve-card.inactive {
+    border-color: #f44336;
+    box-shadow: 0 0 20px rgba(244, 67, 54, 0.3);
+}
+
+.valve-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.valve-title {
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.valve-icon {
+    width: 20px;
+    height: 20px;
+    background: #4a90e2;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    font-size: 10px;
+    flex-shrink: 0;
+}
+
+.valve-status {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.valve-status.active {
+    background: #4CAF50;
+    color: #ffffff;
+}
+
+.valve-status.inactive {
+    background: #f44336;
+    color: #ffffff;
+}
+
+.valve-control {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    justify-content: center;
+}
+
+.valve-switch {
+    position: relative;
+    width: 70px;
+    height: 35px;
+    background: #555;
+    border-radius: 18px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid #666;
+    flex-shrink: 0;
+}
+
+.valve-switch.active {
+    background: #4CAF50;
+    border-color: #4CAF50;
+}
+
+.valve-switch.inactive {
+    background: #f44336;
+    border-color: #f44336;
+}
+
+.valve-switch::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 27px;
+    height: 27px;
+    background: #ffffff;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.valve-switch.active::before {
+    transform: translateX(35px);
+}
+
+.valve-switch:hover {
+    transform: scale(1.05);
+}
+
+.valve-switch:active {
+    transform: scale(0.95);
+}
+
+.valve-info {
+    text-align: center;
+    color: #b0b0b0;
+    font-size: 12px;
+}
+
+.valve-info .valve-id {
+    font-weight: 600;
+    color: #ffffff;
+    font-size: 14px;
+}
+
+.valve-info .valve-type {
+    margin-top: 4px;
+    opacity: 0.8;
+}
+
+.valves-status {
+    background: linear-gradient(135deg, #2c2c2c 0%, #3a3a3a 100%);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #4a4a4a;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.status-summary {
+    display: flex;
+    justify-content: space-around;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.status-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    min-width: 120px;
+}
+
+.status-label {
+    color: #b0b0b0;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-value {
+    color: #ffffff;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.status-value.active {
+    color: #4CAF50;
+}
+
+.status-value.inactive {
+    color: #f44336;
+}
+
+/* Responsive Design para Válvulas */
+@media (max-width: 1400px) {
+    .valves-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+    }
+    
+    .valve-card {
+        padding: 14px;
+        min-height: 130px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .valves-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 12px;
+    }
+    
+    .valves-header {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+    
+    .valves-actions {
+        justify-content: center;
+    }
+    
+    .valve-card {
+        padding: 12px;
+        min-height: 120px;
+    }
+    
+    .valve-title {
+        font-size: 15px;
+    }
+}
+
+@media (max-width: 992px) {
+    .valves-grid {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 10px;
+        padding: 12px;
+    }
+    
+    .valve-card {
+        padding: 10px;
+        min-height: 110px;
+    }
+    
+    .valve-title {
+        font-size: 14px;
+    }
+    
+    .valve-switch {
+        width: 60px;
+        height: 30px;
+    }
+    
+    .valve-switch::before {
+        width: 22px;
+        height: 22px;
+    }
+    
+    .valve-switch.active::before {
+        transform: translateX(30px);
+    }
+}
+
+@media (max-width: 768px) {
+    .valves-grid {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 8px;
+        padding: 10px;
+        max-height: 70vh;
+    }
+    
+    .valve-card {
+        padding: 8px;
+        min-height: 100px;
+    }
+    
+    .valve-title {
+        font-size: 13px;
+    }
+    
+    .valve-header {
+        margin-bottom: 8px;
+    }
+    
+    .valve-control {
+        gap: 8px;
+    }
+    
+    .valve-switch {
+        width: 55px;
+        height: 28px;
+    }
+    
+    .valve-switch::before {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .valve-switch.active::before {
+        transform: translateX(27px);
+    }
+    
+    .status-summary {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .status-item {
+        min-width: auto;
+        width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .valves-control-container {
+        padding: 10px;
+        gap: 10px;
+    }
+    
+    .valves-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        padding: 8px;
+    }
+    
+    .valve-card {
+        padding: 8px;
+        min-height: 90px;
+    }
+    
+    .valve-title {
+        font-size: 12px;
+    }
+    
+    .valves-actions .btn {
+        min-width: 80px;
+        padding: 8px 12px;
+        font-size: 11px;
+    }
+    
+    .valve-switch {
+        width: 50px;
+        height: 25px;
+    }
+    
+    .valve-switch::before {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .valve-switch.active::before {
+        transform: translateX(25px);
+    }
+}
+
+@media (max-width: 480px) {
+    .valves-grid {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+    
+    .valve-card {
+        padding: 6px;
+        min-height: 80px;
+    }
+    
+    .valve-title {
+        font-size: 11px;
+    }
+    
+    .valves-actions .btn {
+        min-width: 70px;
+        padding: 6px 10px;
+        font-size: 10px;
+    }
+}
+
+/* Toast Notifications */
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #2c2c2c;
+    color: #ffffff;
+    padding: 16px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    border-left: 4px solid #4a90e2;
+    z-index: 10000;
+    transform: translateX(400px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    max-width: 350px;
+    min-width: 250px;
+}
+
+.toast.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.toast-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.toast-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.toast-icon.success {
+    color: #4CAF50;
+}
+
+.toast-icon.warning {
+    color: #ff9800;
+}
+
+.toast-icon.error {
+    color: #f44336;
+}
+
+.toast-icon.info {
+    color: #2196F3;
+}
+
+.toast-message {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+}

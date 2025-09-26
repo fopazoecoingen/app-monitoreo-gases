@@ -675,6 +675,13 @@ function switchTab(tabName) {
             }
         }, 100);
     }
+    
+    // Initialize valves control if switching to valves tab
+    if (tabName === 'valves') {
+        setTimeout(() => {
+            initializeValvesControl();
+        }, 100);
+    }
 }
 
 function toggleSidebar() {
@@ -2162,4 +2169,236 @@ function getGasColor(gasType) {
         'co2': '#8bc34a'
     };
     return colors[gasType] || '#666';
+}
+
+// ===== CONTROL DE VÁLVULAS =====
+let valvesState = {
+    valves: Array(12).fill(false), // Estado de las 12 válvulas (false = OFF, true = ON)
+    lastUpdate: Date.now()
+};
+
+// Inicializar el control de válvulas
+function initializeValvesControl() {
+    const valvesGrid = document.getElementById('valvesGrid');
+    if (!valvesGrid) return;
+
+    // Generar las 12 válvulas
+    for (let i = 0; i < 12; i++) {
+        const valveCard = createValveCard(i + 1);
+        valvesGrid.appendChild(valveCard);
+    }
+
+    // Configurar botones de control global
+    setupValveControls();
+    
+    // Actualizar estado inicial
+    updateValvesStatus();
+}
+
+function createValveCard(valveNumber) {
+    const valveCard = document.createElement('div');
+    valveCard.className = 'valve-card inactive';
+    valveCard.id = `valve-${valveNumber}`;
+    
+    valveCard.innerHTML = `
+        <div class="valve-header">
+            <div class="valve-title">
+                <div class="valve-icon">
+                    <i class="fas fa-tint"></i>
+                </div>
+                Válvula ${valveNumber}
+            </div>
+            <div class="valve-status inactive">OFF</div>
+        </div>
+        <div class="valve-control">
+            <div class="valve-switch inactive" data-valve="${valveNumber}"></div>
+            <div class="valve-info">
+                <div class="valve-id">ID: ${valveNumber}</div>
+                <div class="valve-type">Control de Flujo</div>
+            </div>
+        </div>
+    `;
+    
+    // Agregar evento click al switch
+    const valveSwitch = valveCard.querySelector('.valve-switch');
+    valveSwitch.addEventListener('click', () => toggleValve(valveNumber));
+    
+    return valveCard;
+}
+
+function setupValveControls() {
+    // Botón "Todas ON"
+    const allValvesOnBtn = document.getElementById('allValvesOn');
+    if (allValvesOnBtn) {
+        allValvesOnBtn.addEventListener('click', () => {
+            setAllValves(true);
+            showToast('Todas las válvulas activadas', 'success');
+        });
+    }
+
+    // Botón "Todas OFF"
+    const allValvesOffBtn = document.getElementById('allValvesOff');
+    if (allValvesOffBtn) {
+        allValvesOffBtn.addEventListener('click', () => {
+            setAllValves(false);
+            showToast('Todas las válvulas desactivadas', 'warning');
+        });
+    }
+
+    // Botón "Reset"
+    const resetValvesBtn = document.getElementById('resetValves');
+    if (resetValvesBtn) {
+        resetValvesBtn.addEventListener('click', () => {
+            resetValves();
+            showToast('Estado de válvulas restablecido', 'info');
+        });
+    }
+}
+
+function toggleValve(valveNumber) {
+    const valveIndex = valveNumber - 1;
+    valvesState.valves[valveIndex] = !valvesState.valves[valveIndex];
+    valvesState.lastUpdate = Date.now();
+    
+    updateValveCard(valveNumber);
+    updateValvesStatus();
+    
+    // Log del cambio
+    const status = valvesState.valves[valveIndex] ? 'ON' : 'OFF';
+    console.log(`Válvula ${valveNumber} cambiada a: ${status}`);
+    
+    // Mostrar notificación
+    showToast(`Válvula ${valveNumber} ${status}`, valvesState.valves[valveIndex] ? 'success' : 'warning');
+}
+
+function setAllValves(state) {
+    valvesState.valves.fill(state);
+    valvesState.lastUpdate = Date.now();
+    
+    // Actualizar todas las tarjetas
+    for (let i = 1; i <= 12; i++) {
+        updateValveCard(i);
+    }
+    
+    updateValvesStatus();
+}
+
+function resetValves() {
+    valvesState.valves.fill(false);
+    valvesState.lastUpdate = Date.now();
+    
+    // Actualizar todas las tarjetas
+    for (let i = 1; i <= 12; i++) {
+        updateValveCard(i);
+    }
+    
+    updateValvesStatus();
+}
+
+function updateValveCard(valveNumber) {
+    const valveCard = document.getElementById(`valve-${valveNumber}`);
+    if (!valveCard) return;
+    
+    const valveIndex = valveNumber - 1;
+    const isActive = valvesState.valves[valveIndex];
+    
+    // Actualizar clases de la tarjeta
+    valveCard.className = `valve-card ${isActive ? 'active' : 'inactive'}`;
+    
+    // Actualizar estado
+    const statusElement = valveCard.querySelector('.valve-status');
+    statusElement.textContent = isActive ? 'ON' : 'OFF';
+    statusElement.className = `valve-status ${isActive ? 'active' : 'inactive'}`;
+    
+    // Actualizar switch
+    const switchElement = valveCard.querySelector('.valve-switch');
+    switchElement.className = `valve-switch ${isActive ? 'active' : 'inactive'}`;
+}
+
+function updateValvesStatus() {
+    const activeCount = valvesState.valves.filter(state => state).length;
+    const inactiveCount = 12 - activeCount;
+    
+    // Actualizar contadores
+    const activeValvesCount = document.getElementById('activeValvesCount');
+    const inactiveValvesCount = document.getElementById('inactiveValvesCount');
+    const overallStatus = document.getElementById('overallStatus');
+    
+    if (activeValvesCount) {
+        activeValvesCount.textContent = activeCount;
+        activeValvesCount.className = `status-value ${activeCount > 0 ? 'active' : ''}`;
+    }
+    
+    if (inactiveValvesCount) {
+        inactiveValvesCount.textContent = inactiveCount;
+        inactiveValvesCount.className = `status-value ${inactiveCount > 0 ? 'inactive' : ''}`;
+    }
+    
+    if (overallStatus) {
+        if (activeCount === 0) {
+            overallStatus.textContent = 'Inactivo';
+            overallStatus.className = 'status-value inactive';
+        } else if (activeCount === 12) {
+            overallStatus.textContent = 'Totalmente Activo';
+            overallStatus.className = 'status-value active';
+        } else {
+            overallStatus.textContent = 'Parcialmente Activo';
+            overallStatus.className = 'status-value active';
+        }
+    }
+}
+
+function getValvesState() {
+    return {
+        ...valvesState,
+        activeValves: valvesState.valves.map((state, index) => ({
+            valveNumber: index + 1,
+            isActive: state
+        }))
+    };
+}
+
+function setValvesState(newState) {
+    if (newState && Array.isArray(newState.valves) && newState.valves.length === 12) {
+        valvesState.valves = [...newState.valves];
+        valvesState.lastUpdate = Date.now();
+        
+        // Actualizar todas las tarjetas
+        for (let i = 1; i <= 12; i++) {
+            updateValveCard(i);
+        }
+        
+        updateValvesStatus();
+    }
+}
+
+// Función para mostrar notificaciones toast
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+    
+    const toastContent = toast.querySelector('.toast-content');
+    const toastIcon = toast.querySelector('.toast-icon');
+    const toastMessage = toast.querySelector('.toast-message');
+    
+    if (!toastContent || !toastIcon || !toastMessage) return;
+    
+    // Configurar icono según el tipo
+    const icons = {
+        success: 'fas fa-check-circle',
+        warning: 'fas fa-exclamation-triangle',
+        error: 'fas fa-times-circle',
+        info: 'fas fa-info-circle'
+    };
+    
+    toastIcon.className = `toast-icon ${icons[type] || icons.info}`;
+    toastMessage.textContent = message;
+    
+    // Mostrar toast
+    toast.classList.add('show');
+    
+    // Ocultar después de 3 segundos
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
 }
