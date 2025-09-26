@@ -20,16 +20,24 @@ class BlobSender {
     async initialize() {
         try {
             console.log('🚀 Inicializando servicio de envío a blobs...');
+            console.log('📋 Estado inicial del servicio:');
+            console.log(`   - Internet Checker: ${this.internetChecker ? '✅ Instanciado' : '❌ No instanciado'}`);
+            console.log(`   - Blob Service: ${this.blobService ? '✅ Instanciado' : '❌ No instanciado'}`);
+            console.log(`   - Database Manager: ${this.dbManager ? '✅ Instanciado' : '❌ No instanciado'}`);
+            console.log(`   - Config Path: ${this.configPath}`);
 
             // 1. Verificar conexión a internet
             console.log('🔍 Verificando conexión a internet...');
             const connectionResult = await this.internetChecker.checkConnection();
+            console.log(`📊 Resultado de conexión:`, connectionResult);
             
             if (!connectionResult.connected) {
                 console.log('⚠️ No hay conexión a internet. Intentando esperar...');
                 const waitResult = await this.internetChecker.waitForConnection(3000, 5);
+                console.log(`📊 Resultado de espera:`, waitResult);
                 
                 if (!waitResult.connected) {
+                    console.log('❌ No se pudo establecer conexión a internet después de esperar');
                     return { 
                         success: false, 
                         error: 'No se pudo establecer conexión a internet' 
@@ -41,9 +49,12 @@ class BlobSender {
 
             // 2. Cargar configuración de blobs
             console.log('📦 Cargando configuración de blobs...');
+            console.log(`   - Archivo de configuración: ${this.configPath}`);
             const configResult = await this.blobService.loadConfigFromFile(this.configPath);
+            console.log(`📊 Resultado de carga de configuración:`, configResult);
             
             if (!configResult.success) {
+                console.log('❌ Error cargando configuración de blobs');
                 return { 
                     success: false, 
                     error: `Error cargando configuración: ${configResult.error}` 
@@ -55,10 +66,11 @@ class BlobSender {
             // 3. Verificar conexión con endpoint de blobs
             console.log('🔍 Verificando conexión con endpoint de blobs...');
             const verifyResult = await this.blobService.verifyConnection();
+            console.log(`📊 Resultado de verificación de endpoint:`, verifyResult);
             
             if (!verifyResult.success) {
                 console.log(`⚠️ No se pudo verificar conexión con endpoint: ${verifyResult.error}`);
-                // No abortar, continuar con el envío
+                console.log('⚠️ Continuando sin verificación de endpoint...');
             } else {
                 console.log('✅ Conexión con endpoint de blobs verificada');
             }
@@ -66,15 +78,24 @@ class BlobSender {
             // 4. Conectar a base de datos
             console.log('🗄️ Conectando a base de datos...');
             await this.dbManager.connect();
+            console.log('✅ Base de datos conectada');
+            
             await this.dbManager.initialize();
+            console.log('✅ Base de datos inicializada');
 
             this.isInitialized = true;
             console.log('✅ Servicio de envío a blobs inicializado correctamente');
+            console.log('📋 Estado final del servicio:');
+            console.log(`   - Inicializado: ${this.isInitialized ? '✅ Sí' : '❌ No'}`);
+            console.log(`   - Internet: ${connectionResult.connected ? '✅ Conectado' : '❌ Desconectado'}`);
+            console.log(`   - Blob Service: ${this.blobService ? '✅ Disponible' : '❌ No disponible'}`);
+            console.log(`   - Database: ${this.dbManager ? '✅ Conectado' : '❌ Desconectado'}`);
 
             return { success: true };
 
         } catch (error) {
             console.error('❌ Error inicializando servicio:', error.message);
+            console.error('📊 Stack trace completo:', error.stack);
             return { 
                 success: false, 
                 error: `Error de inicialización: ${error.message}` 
@@ -89,9 +110,18 @@ class BlobSender {
      * @returns {Promise<{success: boolean, measurementId?: number, blobId?: string, error?: string}>}
      */
     async sendMeasurementAsBlob(medicionId, format = 'json') {
+        console.log(`\n🚀 === INICIANDO ENVÍO DE MEDICIÓN ===`);
+        console.log(`📋 Parámetros de entrada:`);
+        console.log(`   - Medición ID: ${medicionId}`);
+        console.log(`   - Formato: ${format}`);
+        console.log(`   - Servicio inicializado: ${this.isInitialized ? '✅ Sí' : '❌ No'}`);
+
         if (!this.isInitialized) {
+            console.log('🔄 Servicio no inicializado, inicializando...');
             const initResult = await this.initialize();
+            console.log(`📊 Resultado de inicialización:`, initResult);
             if (!initResult.success) {
+                console.log('❌ Falló la inicialización del servicio');
                 return { success: false, error: initResult.error };
             }
         }
@@ -100,39 +130,89 @@ class BlobSender {
             console.log(`📤 Enviando medición ${medicionId} como blob (formato: ${format})...`);
 
             // Obtener datos de la medición
+            console.log('🔍 Obteniendo todas las mediciones de la base de datos...');
             const readingsResult = await this.dbManager.getAllReadings();
+            console.log(`📊 Resultado de getAllReadings:`, {
+                success: readingsResult.success,
+                dataLength: readingsResult.data ? readingsResult.data.length : 0,
+                error: readingsResult.error
+            });
             
             if (!readingsResult.success) {
+                console.log('❌ Error obteniendo mediciones de la base de datos');
                 return { 
                     success: false, 
                     error: 'Error obteniendo mediciones de la base de datos' 
                 };
             }
 
+            console.log(`📋 Total de mediciones encontradas: ${readingsResult.data.length}`);
             const measurement = readingsResult.data.find(m => m.medicion_id === medicionId);
             
             if (!measurement) {
+                console.log(`❌ Medición con ID ${medicionId} no encontrada`);
+                console.log('📋 IDs de mediciones disponibles:', readingsResult.data.map(m => m.medicion_id));
                 return { 
                     success: false, 
                     error: `Medición con ID ${medicionId} no encontrada` 
                 };
             }
 
-            // Obtener lecturas detalladas
-            const detailedResult = await this.dbManager.getDetailedReadings(medicionId);
-            const readings = detailedResult.success ? detailedResult.data : [];
+            console.log(`✅ Medición encontrada:`, {
+                id: measurement.medicion_id,
+                fecha: measurement.fecha,
+                tipo_evento: measurement.tipo_evento,
+                duracion: measurement.duracion
+            });
 
+            // Obtener lecturas detalladas
+            console.log(`🔍 Obteniendo lecturas detalladas para medición ${medicionId}...`);
+            const detailedResult = await this.dbManager.getDetailedReadings(medicionId);
+            console.log(`📊 Resultado de getDetailedReadings:`, {
+                success: detailedResult.success,
+                dataLength: detailedResult.data ? detailedResult.data.length : 0,
+                error: detailedResult.error
+            });
+            
+            const readings = detailedResult.success ? detailedResult.data : [];
             console.log(`✅ Datos obtenidos: ${readings.length} lecturas detalladas`);
 
+            if (readings.length > 0) {
+                console.log(`📋 Muestra de lecturas (primeras 3):`, readings.slice(0, 3));
+            }
+
+            // Verificar estado de autenticación antes del envío
+            console.log('🔐 Verificando estado de autenticación...');
+            if (this.blobService.authService) {
+                const tokenInfo = this.blobService.authService.getTokenInfo();
+                console.log(`📊 Estado del token:`, tokenInfo);
+            } else {
+                console.log('⚠️ AuthService no disponible');
+            }
+
             // Enviar como blob
+            console.log('📤 Iniciando envío como blob...');
             const result = await this.blobService.uploadMeasurementBlob(measurement, readings, format);
+            console.log(`📊 Resultado del envío:`, {
+                success: result.success,
+                blobId: result.blobId,
+                blobName: result.blobName,
+                error: result.error
+            });
 
             if (result.success) {
                 console.log(`✅ Medición ${medicionId} enviada exitosamente como blob`);
+                console.log(`📋 Detalles del blob enviado:`);
+                console.log(`   - Blob ID: ${result.blobId}`);
+                console.log(`   - Blob Name: ${result.blobName}`);
+                console.log(`   - Container: ${result.containerName}`);
+                console.log(`   - Formato: ${format}`);
                 
                 // Marcar medición como enviada a la plataforma
+                console.log('🏷️ Marcando medición como enviada a la plataforma...');
                 try {
                     const markResult = await this.dbManager.markMedicionAsSentToPlatform(medicionId);
+                    console.log(`📊 Resultado de marcado:`, markResult);
                     if (markResult.success) {
                         console.log(`✅ Medición ${medicionId} marcada como enviada a la plataforma`);
                     } else {
@@ -142,6 +222,7 @@ class BlobSender {
                     console.log(`⚠️ Error marcando medición como enviada: ${error.message}`);
                 }
                 
+                console.log(`🎉 === ENVÍO COMPLETADO EXITOSAMENTE ===\n`);
                 return {
                     success: true,
                     measurementId: medicionId,
@@ -153,11 +234,15 @@ class BlobSender {
                     markedAsSent: true
                 };
             } else {
+                console.log(`❌ Falló el envío del blob: ${result.error}`);
+                console.log(`❌ === ENVÍO FALLÓ ===\n`);
                 return { success: false, error: result.error };
             }
 
         } catch (error) {
             console.error('❌ Error enviando medición como blob:', error.message);
+            console.error('📊 Stack trace completo:', error.stack);
+            console.log(`❌ === ENVÍO FALLÓ CON EXCEPCIÓN ===\n`);
             return { 
                 success: false, 
                 error: `Error enviando medición: ${error.message}` 
@@ -363,9 +448,9 @@ class BlobSender {
     async createExampleConfig() {
         try {
             const exampleConfig = {
-                baseUrl: "https://api.miplataforma.com",
+                baseUrl: "https://ecoingen-api-produccion.azurewebsites.net",
                 apiKey: "tu-api-key-aqui",
-                endpoint: "/api/blobs/upload",
+                endpoint: "/api/Storage/uploadExcelMedicionesSoftware",
                 containerName: "mediciones",
                 headers: {
                     "X-Source": "ModbusAnalyzer",

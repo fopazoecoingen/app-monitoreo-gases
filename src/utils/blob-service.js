@@ -28,7 +28,7 @@ class BlobService {
      */
     async configure(config) {
         try {
-            this.baseUrl = config.baseUrl || 'https://localhost:5001';
+            this.baseUrl = config.baseUrl || 'https://ecoingen-api-produccion.azurewebsites.net';
             this.apiKey = config.apiKey; // Mantenemos para compatibilidad, pero usaremos authService
             this.endpoint = config.endpoint || '/api/Storage/uploadExcelMedicionesSoftware';
             this.containerName = config.containerName || 'mediciones';

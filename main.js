@@ -391,17 +391,28 @@ async function initializeDatabase() {
         
         // Configurar blob service con autenticación automática
         try {
+            console.log('🔧 Configurando servicio de blobs...');
             const blobConfig = {
-                baseUrl: 'https://localhost:5001',
+                baseUrl: 'https://ecoingen-api-produccion.azurewebsites.net',
                 endpoint: '/api/Storage/uploadExcelMedicionesSoftware',
                 apiKey: 'dummy-token', // No se usa realmente, se obtiene dinámicamente
                 containerName: 'mediciones'
             };
             
-            await blobSender.configure(blobConfig);
-            console.log('✅ Servicio de blobs configurado con autenticación automática');
+            console.log('📋 Configuración de blobs:', blobConfig);
+            console.log('🔐 Iniciando configuración con autenticación automática...');
+            
+            const configResult = await blobSender.blobService.configure(blobConfig);
+            console.log('📊 Resultado de configuración:', configResult);
+            
+            if (configResult.success) {
+                console.log('✅ Servicio de blobs configurado con autenticación automática');
+            } else {
+                console.log('❌ Error en configuración de blobs:', configResult.error);
+            }
         } catch (error) {
             console.error('❌ Error configurando servicio de blobs:', error.message);
+            console.error('📊 Stack trace:', error.stack);
         }
     } catch (error) {
         console.error('Error inicializando base de datos:', error);
